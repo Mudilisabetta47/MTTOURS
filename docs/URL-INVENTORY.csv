@@ -1,0 +1,71 @@
+alt_url,in_sitemap,status_2026-10-09,typ,inhalt_beobachtet,neue_url,redirect,entscheidung,bemerkung
+/,ja,200 (SPA-Shell),Startseite,Hero KI-Bild Strandurlaub; Wochenendtrips; Bewertungen; Newsletter -10%,/,nein,behalten,Neu: Server-Rendering; KI-Bilder nicht als Flotte
+/busreisen,ja,200 (SPA),Übersicht,"""Über 30 Ziele im Linienverkehr"", ""ab 19 €"", Bestpreis-Garantie (unbelegt)",/busreisen,nein,behalten,Aussagen nur aus Datenbank
+/reisen,ja,200 (SPA),Katalog,"""0/1 Reisen verfügbar""; 4,8★; 12.000 Reisende (unbelegt)",/reisen,nein,behalten,Reisefinder auf echten Daten
+/reisen/:slug,nein,200 (SPA),Reisedetail,"z. B. /reisen/nizza, /reisen/lloret-de-mar-…, /reisen/novalja (0 €)",/reisen/:slug,nein,behalten,Slugs aus DB übernehmen; unveröffentlichte → 404/410
+/pauschalreisen,nein,Redirect→/reisen (clientseitig),Alias,,/reisen,301,serverseitig,
+/pauschalreisen/:id,nein,200 (SPA),Alias,,/reisen/:slug,301,serverseitig,
+/reisen/checkout,nein,200 (SPA),Checkout,,/buchung/…,301,ersetzen,noindex
+/tour-checkout,nein,200 (SPA),Checkout,,/buchung/…,301,ersetzen,noindex
+/checkout,nein,200 (SPA),Checkout Linie,,/buchung/…,301,ersetzen,noindex
+/wochenendtrips,ja,200 (SPA),Übersicht,"Amsterdam 449,90 € ""nur Fahrt"" vs. Kopenhagen 199 € – prüfen",/wochenendtrips,nein,behalten,Produkttyp TRANSPORT_ONLY
+/wochenendtrips/:slug,nein,200 (SPA),Detail,amsterdam/kopenhagen/prag/paris,/wochenendtrips/:slug,nein,behalten,
+/business,ja,200 (SPA),Gruppen/Firmen,"""50+ moderne Busse"", 4,9/5 (lt. SEO-Analyse; unbelegt)",/fuer-unternehmen,301,umbenennen (optional),Alternativ URL behalten – Entscheidung Inhaber
+/blog,ja,200 (SPA),Magazin,nicht im Export v2 (31.08.) enthalten – Inhalt prüfen,/ratgeber,301,prüfen,nur übernehmen was Substanz hat
+/bewertungen,ja,200 (SPA),Bewertungen,40 Einträge 1:1 aus interner CSV; keine Buchungsverknüpfung,–,410 oder 301 → /,SOFORT offline nehmen,UWG-Risiko; erst mit belegter Quelle neu
+/gutscheine,ja,200 (SPA),Gutscheine,nicht im Export v2 – prüfen,/gutscheine,nein,prüfen,Gutscheinverkauf = eigenes Produkt
+/service,ja,200 (SPA),Hilfe/FAQ,"Storno ""bis 15 Min. vor Abfahrt kostenlos"" widerspricht ""24 h""; ""alle Busse mit Rollstuhlrampen""",/service,nein,behalten,Texte gegen AGB prüfen
+/fahrplan,nein,200 (SPA),Fahrplan/Zustiege,Linienfahrten,/fahrplan,nein,prüfen,Nur wenn Linienverkehr real betrieben wird
+/bus-mieten,ja,200 (SPA),Hub,,/bus-mieten,nein,behalten,
+/bus-mieten-hannover,ja,200 (SPA),Regio,"guter Text; ""8–59 Plätze"", Doppelstock bis 79 (prüfen)",/bus-mieten-hannover,nein,behalten,Hauptseite Hannover
+/busunternehmen-hannover,ja,200 (SPA),Regio,,/busunternehmen-hannover,nein,behalten,Firmensitz
+/reisebus-mieten-hannover,ja,200 (SPA),Regio,,/reisebus-mieten-hannover,nein,behalten,Intention schärfen
+/busvermietung-hannover,ja,200 (SPA),Regio,,/busvermietung-hannover,nein,behalten,B2B/Rahmenverträge
+/bus-mieten-bremen,ja,200 (SPA),Regio,,/bus-mieten-bremen,nein,behalten,
+/reisebus-mieten-bremen,ja,200 (SPA),Regio,,/reisebus-mieten-bremen,nein,behalten,
+/busvermietung-bremen,ja,200 (SPA),Regio,,/busvermietung-bremen,nein,behalten,
+/bus-mieten-hamburg,ja,200 (SPA),Regio,,/bus-mieten-hamburg,nein,behalten,
+/reisebus-mieten-hamburg,ja,200 (SPA),Regio,,/reisebus-mieten-hamburg,nein,behalten,
+/busvermietung-hamburg,ja,200 (SPA),Regio,,/busvermietung-hamburg,nein,behalten,
+/reisebus-mit-fahrer,ja,200 (SPA),Leistung,,/reisebus-mit-fahrer,nein,behalten,
+/gruppenreisen,ja,200 (SPA),Leistung,,/gruppenreisen,nein,behalten,
+/schulfahrten,ja,200 (SPA),Leistung,,/schulfahrten,nein,behalten,Klassenfahrt-Keyword
+/vereinsfahrten,ja,200 (SPA),Leistung,,/vereinsfahrten,nein,behalten,
+/ausflugsfahrten,ja,200 (SPA),Leistung,,/ausflugsfahrten,nein,behalten,
+/flughafentransfer,ja,200 (SPA),Leistung,,/flughafentransfer,nein,behalten,
+/shuttle-service,ja,200 (SPA),Leistung,,/shuttle-service,nein,behalten,
+/bus-charter,ja,200 (SPA),Leistung,,/bus-charter,nein,behalten,
+/partner,ja,200 (SPA),Partner werden,nicht im Export v2 – prüfen,/partner,nein,prüfen,
+/busunternehmen,ja,200 (SPA),Hub,,/busunternehmen,nein,behalten,
+/busunternehmen-berlin,ja,200 (SPA),Regio (kein Standort),"Berlin-spezifischer Text, Abfahrt nicht belegt",offen,offen,GSC-Daten abwarten,Doorway-Risiko; ggf. noindex → später 301 /bus-mieten
+/busunternehmen-muenchen,ja,200 (SPA),Regio (kein Standort),,offen,offen,GSC-Daten abwarten,Doorway-Risiko
+/busunternehmen-koeln,ja,200 (SPA),Regio (kein Standort),,offen,offen,GSC-Daten abwarten,Doorway-Risiko
+/busunternehmen-frankfurt,ja,200 (SPA),Regio (kein Standort),,offen,offen,GSC-Daten abwarten,Doorway-Risiko
+/busunternehmen-stuttgart,ja,200 (SPA),Regio (kein Standort),,offen,offen,GSC-Daten abwarten,Doorway-Risiko
+/busunternehmen-duesseldorf,ja,200 (SPA),Regio (kein Standort),,offen,offen,GSC-Daten abwarten,Doorway-Risiko
+/busunternehmen-leipzig,ja,200 (SPA),Regio (kein Standort),,offen,offen,GSC-Daten abwarten,Doorway-Risiko
+/busunternehmen-dresden,ja,200 (SPA),Regio (kein Standort),,offen,offen,GSC-Daten abwarten,Doorway-Risiko
+/busunternehmen-nuernberg,ja,200 (SPA),Regio (kein Standort),,offen,offen,GSC-Daten abwarten,Doorway-Risiko
+/busunternehmen-dortmund,ja,200 (SPA),Regio (kein Standort),,offen,offen,GSC-Daten abwarten,Doorway-Risiko
+/busunternehmen-essen,ja,200 (SPA),Regio (kein Standort),,offen,offen,GSC-Daten abwarten,Doorway-Risiko
+/busunternehmen-braunschweig,ja,200 (SPA),Regio,nahe Hannover – plausibel,/busunternehmen-braunschweig,nein,prüfen,Linie SEV32 Hannover–Braunschweig existiert in DB
+/imprint,ja,200 (SPA),Recht,Impressum (Rudolf-Diesel-Weg 8; Bus-Beschriftung nennt Engelbosteler Damm 1 – klären),/impressum,301,deutsch,
+/privacy,ja,200 (SPA),Recht,,/datenschutz,301,deutsch,
+/terms,ja,200 (SPA),Recht,AGB – unverändert übernehmen bis juristische Prüfung,/agb,301,deutsch,
+/widerruf,ja,200 (SPA),Recht,,/widerruf,nein,behalten,
+/bookings,nein,200 (SPA),Kunde,Meine Buchungen,/mein-konto/buchungen,301,ersetzen,noindex
+/track/:bookingId,nein,200 (SPA),Kunde,,/mein-konto/buchungen,301,ersetzen,noindex
+/verfolge,nein,200 (SPA),Fahrtverfolgung,,/fahrt-verfolgen,301,Phase 6,nur mit echten Positionsdaten
+/verfolge/:tripNumber,nein,200 (SPA),Fahrtverfolgung,,/fahrt-verfolgen/:nr,301,Phase 6,
+/passagierdaten,nein,200 (SPA),Kunde,Passagierdaten nachreichen (Token),/buchung/reisende,301,Phase 3,
+/search,nein,200 (SPA),Suche,,/reisen?…,301,ersetzen,noindex
+/auth,nein,200 (SPA),Login,,/anmelden,301,ersetzt (Phase 1),
+/reset-password,nein,200 (SPA),Login,,/passwort-setzen,301,ersetzt (Phase 1),
+/shop … (7 Routen),nein,200 (SPA),Shop,2 Produkte in DB,offen,offen,Entscheidung Inhaber,Nicht im Auftrag genannt
+/app … (8 Routen),nein,200 (SPA),Kunden-App (Capacitor),iOS-Projekt vorhanden,/mein-konto (PWA),301,Phase 7,App-Store-Status klären
+/karriere,nein,? ,Karriere,KarrierePage im Code; Route nicht in App.tsx,offen,offen,prüfen,
+/admin/*,nein,200 (SPA),Backoffice,~70 Admin-Routen,/admin/*,nein,neu gebaut,noindex
+/ops,nein,Redirect→/admin/ops,OPS,,/ops,nein,neu gebaut (Phase 6),
+/fahrer,nein,Redirect→/admin/driver,Fahrer,,/fahrer,nein,neu gebaut (Phase 1 Basis / Phase 6),
+/wallboard/:token,nein,200 (SPA),Wallboard,,offen,offen,prüfen,
+http://metours.de/,–,302 → www,Host,,https://www.metours.de/,301,korrigieren,302 ist falsch für dauerhafte Weiterleitung

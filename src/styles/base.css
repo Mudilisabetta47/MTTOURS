@@ -1,0 +1,247 @@
+/* Reset, primitives, accessibility. Everything references tokens. */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  scroll-padding-top: 5rem;
+}
+
+body {
+  margin: 0;
+  min-height: 100svh;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-sans);
+  font-size: var(--step-0);
+  line-height: var(--lh-body);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  margin: 0;
+  line-height: var(--lh-tight);
+  letter-spacing: var(--track-tight);
+  font-weight: 700;
+  text-wrap: balance;
+}
+
+p {
+  margin: 0;
+  text-wrap: pretty;
+}
+
+img,
+svg,
+video,
+canvas {
+  display: block;
+  max-inline-size: 100%;
+}
+
+a {
+  color: inherit;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+  border-radius: var(--radius-xs);
+}
+
+.sr-only {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.skip-link {
+  position: absolute;
+  inset-inline-start: 1rem;
+  inset-block-start: -4rem;
+  z-index: 100;
+  padding: 0.6rem 1rem;
+  background: var(--ink);
+  color: #fff;
+  border-radius: var(--radius-sm);
+}
+.skip-link:focus {
+  inset-block-start: 1rem;
+}
+
+.shell {
+  inline-size: 100%;
+  max-inline-size: var(--maxw);
+  margin-inline: auto;
+  padding-inline: var(--gutter);
+}
+
+.mono-label {
+  font-family: var(--font-mono);
+  font-size: var(--step--2);
+  letter-spacing: var(--track-label);
+  text-transform: uppercase;
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Buttons — variants only change three local variables. Min 44px target. */
+.btn {
+  --btn-bg: var(--ink);
+  --btn-fg: #fff;
+  --btn-hover: color-mix(in oklab, var(--ink) 85%, var(--brand));
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5em;
+  min-block-size: 44px;
+  padding: 0.6em 1.15em;
+  border: 1px solid transparent;
+  border-radius: var(--radius-pill);
+  background: var(--btn-bg);
+  color: var(--btn-fg);
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    background-color var(--dur-sm) var(--ease-swift),
+    transform var(--dur-sm) var(--ease-swift);
+}
+.btn:hover {
+  background: var(--btn-hover);
+}
+.btn:active {
+  transform: translateY(1px);
+}
+.btn:disabled,
+.btn[aria-disabled="true"] {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.btn--brand {
+  --btn-bg: var(--brand);
+  --btn-fg: var(--on-brand);
+  --btn-hover: var(--brand-strong);
+}
+.btn--ghost {
+  --btn-bg: transparent;
+  --btn-fg: var(--fg);
+  --btn-hover: var(--bg-muted);
+  border-color: var(--line-strong);
+}
+.btn--sm {
+  min-block-size: 36px;
+  padding: 0.35em 0.85em;
+  font-size: var(--step--1);
+}
+.btn--lg {
+  min-block-size: 56px;
+  padding: 0.8em 1.6em;
+  font-size: var(--step-1);
+}
+
+/* Form fields */
+.field {
+  display: grid;
+  gap: 0.35rem;
+}
+.field label {
+  font-size: var(--step--1);
+  font-weight: 600;
+}
+.field input:not([type="checkbox"], [type="radio"]),
+.field select,
+.field textarea {
+  min-block-size: 44px;
+  padding: 0.55rem 0.8rem;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+}
+.field input:focus-visible,
+.field select:focus-visible,
+.field textarea:focus-visible {
+  border-color: var(--brand);
+  outline-offset: 0;
+}
+.field input[type="checkbox"],
+.field input[type="radio"] {
+  inline-size: 1.15rem;
+  block-size: 1.15rem;
+  accent-color: var(--brand-deep);
+}
+.choice {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-block-size: 44px; /* touch target via the label */
+  font-weight: 400;
+  cursor: pointer;
+}
+fieldset.field {
+  min-inline-size: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.field .hint {
+  color: var(--fg-muted);
+  font-size: var(--step--1);
+}
+.field [aria-invalid="true"] {
+  border-color: var(--danger);
+}
+.field .error {
+  color: var(--danger);
+  font-size: var(--step--1);
+}
+
+.alert {
+  padding: 0.8rem 1rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line);
+  font-size: var(--step--1);
+}
+.alert--danger {
+  background: var(--danger-bg);
+  border-color: color-mix(in oklab, var(--danger) 35%, transparent);
+}
+.alert--warn {
+  background: var(--warn-bg);
+}
+.alert--info {
+  background: var(--info-bg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+    scroll-behavior: auto !important;
+  }
+}

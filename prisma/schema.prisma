@@ -1,0 +1,1668 @@
+// METROPOL TOURS DIGITAL PLATFORM — relational data model
+//
+// Conventions
+// - Money: integer minor units (cents) + ISO currency. Never floats.
+// - Tax rates: basis points (1900 = 19,00 %).
+// - Times: stored as UTC timestamps, displayed in Europe/Berlin.
+// - IDs: string (cuid for new rows; migrated rows may keep their legacy UUID).
+// - Constraints Prisma cannot express (partial unique indexes, exclusion
+//   constraints, CHECKs) live in the SQL migrations. See docs/DATABASE.md.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// IDENTITY, ACCESS, AUDIT
+// ─────────────────────────────────────────────────────────────────────────────
+
+enum Role {
+  OWNER
+  ADMIN
+  DISPATCHER
+  OFFICE
+  DRIVER
+  ACCOUNTING
+  CONTENT_MANAGER
+  CUSTOMER
+}
+
+model User {
+  id                String    @id @default(cuid())
+  email             String    @unique // normalised lower-case
+  emailVerifiedAt   DateTime?
+  passwordHash      String? // argon2id; null = must set password via reset link
+  displayName       String
+  phone             String?
+  isActive          Boolean   @default(true)
+  mfaSecretEnc      String? // encrypted TOTP secret (planned before go-live)
+  mfaEnabledAt      DateTime?
+  lastLoginAt       DateTime?
+  passwordChangedAt DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  roles          UserRole[]
+  sessions       Session[]
+  resetTokens    PasswordResetToken[]
+  customer       Customer?
+  driver         Driver?
+  auditEntries   AuditLog[]           @relation("AuditActor")
+  assignedLeads  Inquiry[]            @relation("LeadAssignee")
+  messages       Message[]
+  messageReceipts MessageReceipt[]
+}
+
+model UserRole {
+  userId    String
+  role      Role
+  grantedAt DateTime @default(now())
+  grantedBy String?
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([userId, role])
+  @@index([role])
+}
+
+/// Server-side session. The cookie carries a random token; only its SHA-256 is stored.
+model Session {
+  id          String    @id // sha256(token) hex
+  userId      String
+  createdAt   DateTime  @default(now())
+  expiresAt   DateTime
+  lastSeenAt  DateTime  @default(now())
+  mfaVerified Boolean   @default(false)
+  userAgent   String?
+  ipHash      String?
+  revokedAt   DateTime?
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model PasswordResetToken {
+  id        String    @id // sha256(token)
+  userId    String
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+/// Append-only. Business-critical changes write their entry in the same transaction.
+model AuditLog {
+  id          String   @id @default(cuid())
+  at          DateTime @default(now())
+  actorUserId String?
+  actorLabel  String? // "system", "stripe-webhook", "migration" …
+  action      String // e.g. "booking.cancel", "trip.publish", "price.change"
+  entityType  String
+  entityId    String
+  before      Json?
+  after       Json?
+  reason      String?
+  ipHash      String?
+  actor       User?    @relation("AuditActor", fields: [actorUserId], references: [id], onDelete: SetNull)
+
+  @@index([entityType, entityId, at])
+  @@index([actorUserId, at])
+  @@index([action, at])
+}
+
+model RateLimitBucket {
+  key         String   @id
+  windowStart DateTime
+  count       Int
+}
+
+model IdempotencyKey {
+  key         String   @id
+  scope       String
+  requestHash String
+  response    Json?
+  createdAt   DateTime @default(now())
+
+  @@index([createdAt])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CUSTOMERS / B2B
+// ─────────────────────────────────────────────────────────────────────────────
+
+enum CustomerType {
+  PRIVATE
+  BUSINESS
+}
+
+model Company {
+  id                String    @id @default(cuid())
+  name              String
+  vatId             String?
+  billingStreet     String?
+  billingPostalCode String?
+  billingCity       String?
+  billingCountry    String    @default("DE")
+  billingEmail      String?
+  paymentTermsDays  Int       @default(14)
+  leitwegId         String? // XRechnung routing ID for public-sector customers
+  notes             String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  contacts    Customer[]
+  contracts   FrameworkContract[]
+  costCenters CostCenter[]
+  followUps   FollowUp[]
+  inquiries   Inquiry[]
+  invoices    Invoice[]
+}
+
+model CostCenter {
+  id        String  @id @default(cuid())
+  companyId String
+  code      String
+  label     String
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@unique([companyId, code])
+}
+
+model FrameworkContract {
+  id          String    @id @default(cuid())
+  companyId   String
+  title       String
+  validFrom   DateTime
+  validUntil  DateTime?
+  terms       Json // agreed prices / conditions, structured
+  fileId      String?
+  createdAt   DateTime  @default(now())
+  company     Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  file        StoredFile? @relation(fields: [fileId], references: [id])
+}
+
+model Customer {
+  id          String       @id @default(cuid())
+  type        CustomerType @default(PRIVATE)
+  userId      String?      @unique
+  companyId   String?
+  email       String
+  firstName   String
+  lastName    String
+  phone       String?
+  street      String?
+  postalCode  String?
+  city        String?
+  country     String       @default("DE")
+  notes       String?
+  marketingOptInAt DateTime?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  user      User?      @relation(fields: [userId], references: [id], onDelete: SetNull)
+  company   Company?   @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  orders    Order[]
+  inquiries Inquiry[]
+  quotes    Quote[]
+  charterOrders CharterOrder[]
+  invoices  Invoice[]
+  followUps FollowUp[]
+
+  @@index([email])
+  @@index([companyId])
+  @@index([lastName, firstName])
+}
+
+model FollowUp {
+  id         String    @id @default(cuid())
+  dueAt      DateTime
+  note       String
+  doneAt     DateTime?
+  customerId String?
+  companyId  String?
+  inquiryId  String?
+  createdById String?
+  customer   Customer? @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  company    Company?  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  inquiry    Inquiry?  @relation(fields: [inquiryId], references: [id], onDelete: Cascade)
+
+  @@index([dueAt, doneAt])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// FILES & MEDIA (S3-compatible, private by default)
+// ─────────────────────────────────────────────────────────────────────────────
+
+enum FileVisibility {
+  PRIVATE
+  PUBLIC
+}
+
+model StoredFile {
+  id           String         @id @default(cuid())
+  bucket       String
+  key          String
+  mimeType     String
+  sizeBytes    Int
+  sha256       String
+  visibility   FileVisibility @default(PRIVATE)
+  ownerType    String? // "vehicle", "driver", "invoice", "quote" …
+  ownerId      String?
+  uploadedById String?
+  createdAt    DateTime       @default(now())
+
+  media             MediaAsset?
+  vehicleDocuments  VehicleDocument[]
+  driverDocuments   DriverDocument[]
+  frameworkContracts FrameworkContract[]
+  quoteVersions     QuoteVersion[]
+  invoices          Invoice[]
+
+  @@unique([bucket, key])
+  @@index([ownerType, ownerId])
+}
+
+model MediaAsset {
+  id             String     @id @default(cuid())
+  fileId         String     @unique
+  alt            String
+  width          Int
+  height         Int
+  credit         String?
+  /// AI-generated images must never depict "our real bus" and are labelled on the site.
+  isAiGenerated  Boolean    @default(false)
+  rightsConfirmed Boolean   @default(false)
+  createdAt      DateTime   @default(now())
+  file           StoredFile @relation(fields: [fileId], references: [id], onDelete: Cascade)
+
+  tripMedia    TripMedia[]
+  vehicleMedia VehicleMedia[]
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CATALOG: TRIP PRODUCTS (separate from concrete departures)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Legal/tax classification. Drives information duties, invoicing and booking rules.
+enum ProductType {
+  PACKAGE_TOUR // Pauschalreise (§ 651a BGB) – Sicherungsschein required
+  TRANSPORT_ONLY // reine Beförderung, e.g. weekend trip "nur Fahrt"
+  DAY_TRIP // Tagesfahrt
+  LINE_TICKET // Einzelticket Linie
+  GROUP_TOUR // Gruppenreise auf Anfrage
+}
+
+enum PublishStatus {
+  DRAFT
+  REVIEW
+  PUBLISHED
+  ARCHIVED
+}
+
+model Trip {
+  id              String        @id @default(cuid())
+  slug            String        @unique
+  title           String
+  productType     ProductType
+  status          PublishStatus @default(DRAFT)
+  countryCode     String // ISO 3166-1 alpha-2
+  destination     String
+  summary         String
+  description     Json // structured blocks, no free HTML
+  durationDays    Int
+  durationNights  Int           @default(0)
+  currency        String        @default("EUR")
+  hotelName       String?
+  hotelStars      Int?
+  hotelAddress    String?
+  latitude        Float?
+  longitude       Float?
+  seoTitle        String?
+  seoDescription  String?
+  noindex         Boolean       @default(false)
+  /// Package tours may only be published when a valid insolvency certificate is configured.
+  insolvencyCertificateRef String?
+  publishedAt     DateTime?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  media      TripMedia[]
+  itinerary  TripItineraryDay[]
+  inclusions TripInclusion[]
+  optionalServices OptionalService[]
+  departures TripDeparture[]
+  faqs       Faq[]
+
+  @@index([status, productType])
+  @@index([countryCode])
+}
+
+model TripMedia {
+  tripId  String
+  mediaId String
+  role    String @default("GALLERY") // HERO | GALLERY
+  sort    Int    @default(0)
+  trip    Trip       @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  media   MediaAsset @relation(fields: [mediaId], references: [id], onDelete: Cascade)
+
+  @@id([tripId, mediaId])
+}
+
+model TripItineraryDay {
+  id        String @id @default(cuid())
+  tripId    String
+  dayNumber Int
+  title     String
+  body      String
+  trip      Trip   @relation(fields: [tripId], references: [id], onDelete: Cascade)
+
+  @@unique([tripId, dayNumber])
+}
+
+enum InclusionKind {
+  INCLUDED
+  EXCLUDED
+}
+
+model TripInclusion {
+  id     String        @id @default(cuid())
+  tripId String
+  kind   InclusionKind
+  text   String
+  sort   Int           @default(0)
+  trip   Trip          @relation(fields: [tripId], references: [id], onDelete: Cascade)
+
+  @@index([tripId, kind, sort])
+}
+
+enum PriceUnit {
+  PER_PERSON
+  PER_BOOKING
+}
+
+model OptionalService {
+  id            String    @id @default(cuid())
+  tripId        String?
+  name          String
+  description   String?
+  priceCents    Int
+  unit          PriceUnit @default(PER_PERSON)
+  taxRateBp     Int?
+  maxPerBooking Int?
+  isActive      Boolean   @default(true)
+  sort          Int       @default(0)
+  trip          Trip?     @relation(fields: [tripId], references: [id], onDelete: Cascade)
+
+  @@index([tripId, isActive])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// STOPS & DEPARTURES
+// ─────────────────────────────────────────────────────────────────────────────
+
+model Stop {
+  id          String   @id @default(cuid())
+  name        String // "Hannover ZOB"
+  city        String
+  street      String?
+  postalCode  String?
+  countryCode String   @default("DE")
+  platform    String?
+  latitude    Float?
+  longitude   Float?
+  notes       String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  departureStops DepartureStop[]
+  charterStops   CharterStop[]
+
+  @@unique([name, city])
+}
+
+enum DepartureStatus {
+  DRAFT
+  ON_SALE
+  SALES_CLOSED
+  CANCELLED
+  COMPLETED
+}
+
+model TripDeparture {
+  id              String          @id @default(cuid())
+  tripId          String
+  code            String          @unique // e.g. NIZ-2027-05-14
+  departAt        DateTime
+  returnAt        DateTime?
+  status          DepartureStatus @default(DRAFT)
+  /// Sellable seats. Never larger than the assigned vehicle's bookable seats (checked in service + DB).
+  capacity        Int
+  soldCount       Int             @default(0)
+  heldCount       Int             @default(0)
+  bookingDeadline DateTime?
+  seatSelection   Boolean         @default(false)
+  seatLayoutId    String?
+  notes           String?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  trip         Trip              @relation(fields: [tripId], references: [id], onDelete: Restrict)
+  seatLayout   SeatLayout?       @relation(fields: [seatLayoutId], references: [id])
+  fares        DepartureFare[]
+  stops        DepartureStop[]
+  holds        CapacityHold[]
+  seatReservations SeatReservation[]
+  bookings     Booking[]
+  tickets      Ticket[]
+  run          Run?
+
+  @@index([tripId, departAt])
+  @@index([status, departAt])
+}
+
+model DepartureFare {
+  id          String        @id @default(cuid())
+  departureId String
+  code        String // BASIC | SMART | FLEX …
+  name        String
+  priceCents  Int
+  /// Structured conditions (luggage, cancellation). Shown to customer; must match AGB.
+  conditions  Json?
+  isActive    Boolean       @default(true)
+  sort        Int           @default(0)
+  departure   TripDeparture @relation(fields: [departureId], references: [id], onDelete: Cascade)
+  bookings    Booking[]
+
+  @@unique([departureId, code])
+}
+
+enum StopKind {
+  PICKUP
+  DROPOFF
+  PICKUP_DROPOFF
+  WAYPOINT
+}
+
+enum StopEventStatus {
+  PLANNED
+  ARRIVED
+  DEPARTED
+  SKIPPED
+}
+
+model DepartureStop {
+  id                String          @id @default(cuid())
+  departureId       String
+  stopId            String
+  sequence          Int
+  kind              StopKind        @default(PICKUP)
+  plannedAt         DateTime
+  surchargeCents    Int             @default(0)
+  status            StopEventStatus @default(PLANNED)
+  actualArrivalAt   DateTime?
+  actualDepartureAt DateTime?
+  departure         TripDeparture   @relation(fields: [departureId], references: [id], onDelete: Cascade)
+  stop              Stop            @relation(fields: [stopId], references: [id], onDelete: Restrict)
+
+  boardingPassengers  BookingPassenger[] @relation("Boarding")
+  alightingPassengers BookingPassenger[] @relation("Alighting")
+  validations         TicketValidation[]
+
+  @@unique([departureId, sequence])
+  @@index([stopId])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// FLEET
+// ─────────────────────────────────────────────────────────────────────────────
+
+enum VehicleStatus {
+  ACTIVE
+  MAINTENANCE
+  OUT_OF_SERVICE
+  RETIRED
+}
+
+model SeatLayout {
+  id         String   @id @default(cuid())
+  name       String   @unique // "MAN Lion's Coach C – 53+1+1"
+  rows       Int
+  columns    Int // grid columns incl. aisle
+  notes      String?
+  createdAt  DateTime @default(now())
+
+  seats      Seat[]
+  vehicles   Vehicle[]
+  departures TripDeparture[]
+}
+
+enum SeatKind {
+  SEAT
+  DRIVER
+  GUIDE
+  DOOR
+  WC
+  STAIRS
+  KITCHEN
+}
+
+model Seat {
+  id         String     @id @default(cuid())
+  layoutId   String
+  label      String // "12C"
+  row        Int
+  col        Int
+  deck       Int        @default(1)
+  kind       SeatKind   @default(SEAT)
+  isBookable Boolean    @default(true)
+  layout     SeatLayout @relation(fields: [layoutId], references: [id], onDelete: Cascade)
+
+  reservations SeatReservation[]
+
+  @@unique([layoutId, label])
+  @@unique([layoutId, deck, row, col])
+}
+
+model Vehicle {
+  id             String        @id @default(cuid())
+  internalNumber String        @unique
+  licensePlate   String        @unique
+  manufacturer   String
+  model          String
+  firstRegistration DateTime?
+  seats          Int
+  vehicleClass   String // KLEINBUS | MIDIBUS | REISEBUS | DOPPELDECKER
+  equipment      String[] // only verified equipment: WC, WLAN, 230V …
+  status         VehicleStatus @default(ACTIVE)
+  homeDepot      String?
+  seatLayoutId   String?
+  huDueAt        DateTime? // Hauptuntersuchung
+  spDueAt        DateTime? // Sicherheitsprüfung
+  tachographDueAt DateTime?
+  insuranceUntil DateTime?
+  notes          String?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  seatLayout   SeatLayout?          @relation(fields: [seatLayoutId], references: [id])
+  documents    VehicleDocument[]
+  media        VehicleMedia[]
+  maintenance  MaintenanceWindow[]
+  assignments  VehicleAssignment[]
+  positions    VehiclePosition[]
+}
+
+model VehicleMedia {
+  vehicleId String
+  mediaId   String
+  sort      Int        @default(0)
+  vehicle   Vehicle    @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  media     MediaAsset @relation(fields: [mediaId], references: [id], onDelete: Cascade)
+
+  @@id([vehicleId, mediaId])
+}
+
+model VehicleDocument {
+  id         String     @id @default(cuid())
+  vehicleId  String
+  type       String // ZULASSUNG | VERSICHERUNG | HU_BERICHT | …
+  fileId     String
+  validUntil DateTime?
+  createdAt  DateTime   @default(now())
+  vehicle    Vehicle    @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  file       StoredFile @relation(fields: [fileId], references: [id], onDelete: Restrict)
+}
+
+model MaintenanceWindow {
+  id        String   @id @default(cuid())
+  vehicleId String
+  startsAt  DateTime
+  endsAt    DateTime
+  type      String // HU | SP | WERKSTATT | REIFEN | SONSTIGES
+  reason    String?
+  createdAt DateTime @default(now())
+  vehicle   Vehicle  @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+
+  @@index([vehicleId, startsAt])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// INVENTORY (overbooking is prevented by the database, not the UI)
+// ─────────────────────────────────────────────────────────────────────────────
+
+enum HoldStatus {
+  ACTIVE
+  CONVERTED
+  RELEASED
+  EXPIRED
+}
+
+/// Counter-based capacity hold created at checkout start. Expires automatically.
+model CapacityHold {
+  id          String        @id @default(cuid())
+  departureId String
+  orderId     String
+  quantity    Int
+  status      HoldStatus    @default(ACTIVE)
+  expiresAt   DateTime
+  createdAt   DateTime      @default(now())
+  departure   TripDeparture @relation(fields: [departureId], references: [id], onDelete: Cascade)
+  order       Order         @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([status, expiresAt])
+  @@index([departureId, status])
+}
+
+enum SeatReservationStatus {
+  HELD
+  BOOKED
+  RELEASED
+}
+
+/// One row per seat per departure while held/booked.
+/// Partial unique index (departureId, seatId) WHERE status IN ('HELD','BOOKED') — see migration.
+model SeatReservation {
+  id          String                @id @default(cuid())
+  departureId String
+  seatId      String
+  orderId     String
+  status      SeatReservationStatus @default(HELD)
+  expiresAt   DateTime?
+  createdAt   DateTime              @default(now())
+  departure   TripDeparture         @relation(fields: [departureId], references: [id], onDelete: Cascade)
+  seat        Seat                  @relation(fields: [seatId], references: [id], onDelete: Restrict)
+  order       Order                 @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  passenger   BookingPassenger?
+
+  @@index([departureId, status])
+  @@index([orderId])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ORDERS, BOOKINGS, TICKETS
+// ─────────────────────────────────────────────────────────────────────────────
+
+enum OrderStatus {
+  DRAFT
+  PENDING_PAYMENT
+  PAID
+  PARTIALLY_REFUNDED
+  REFUNDED
+  CANCELLED
+  EXPIRED
+}
+
+model Order {
+  id             String      @id @default(cuid())
+  number         String      @unique
+  customerId     String?
+  email          String
+  status         OrderStatus @default(DRAFT)
+  currency       String      @default("EUR")
+  subtotalCents  Int         @default(0)
+  discountCents  Int         @default(0)
+  feesCents      Int         @default(0)
+  taxCents       Int         @default(0)
+  totalCents     Int         @default(0)
+  /// Guest access: sha256 of a random token sent by email. Never the booking number alone.
+  accessTokenHash String?    @unique
+  consents       Json // timestamps + document versions accepted (AGB, Datenschutz, Formblatt)
+  expiresAt      DateTime?
+  paidAt         DateTime?
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+
+  customer   Customer?         @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  lines      OrderLine[]
+  bookings   Booking[]
+  payments   Payment[]
+  holds      CapacityHold[]
+  seatReservations SeatReservation[]
+  voucherRedemptions VoucherRedemption[]
+  invoices   Invoice[]
+
+  @@index([status, expiresAt])
+  @@index([email])
+}
+
+enum OrderLineKind {
+  FARE
+  STOP_SURCHARGE
+  OPTIONAL_SERVICE
+  DISCOUNT
+  FEE
+}
+
+model OrderLine {
+  id             String        @id @default(cuid())
+  orderId        String
+  kind           OrderLineKind
+  description    String
+  quantity       Int
+  unitPriceCents Int
+  totalCents     Int
+  taxRateBp      Int?
+  referenceType  String?
+  referenceId    String?
+  order          Order         @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+  NO_SHOW
+}
+
+model Booking {
+  id          String        @id @default(cuid())
+  number      String        @unique
+  orderId     String
+  departureId String
+  fareId      String
+  productType ProductType
+  status      BookingStatus @default(PENDING)
+  contactName String
+  contactEmail String
+  contactPhone String?
+  customerNote String?
+  cancelledAt DateTime?
+  cancelReason String?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  order      Order              @relation(fields: [orderId], references: [id], onDelete: Restrict)
+  departure  TripDeparture      @relation(fields: [departureId], references: [id], onDelete: Restrict)
+  fare       DepartureFare      @relation(fields: [fareId], references: [id], onDelete: Restrict)
+  passengers BookingPassenger[]
+  changeRequests BookingChangeRequest[]
+
+  @@index([departureId, status])
+  @@index([orderId])
+}
+
+enum PassengerType {
+  ADULT
+  CHILD
+  INFANT
+}
+
+model BookingPassenger {
+  id                 String        @id @default(cuid())
+  bookingId          String
+  firstName          String
+  lastName           String
+  birthDate          DateTime?
+  type               PassengerType @default(ADULT)
+  boardingStopId     String
+  alightingStopId    String?
+  seatReservationId  String?       @unique
+  booking            Booking       @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  boardingStop       DepartureStop @relation("Boarding", fields: [boardingStopId], references: [id], onDelete: Restrict)
+  alightingStop      DepartureStop? @relation("Alighting", fields: [alightingStopId], references: [id], onDelete: Restrict)
+  seatReservation    SeatReservation? @relation(fields: [seatReservationId], references: [id], onDelete: SetNull)
+  ticket             Ticket?
+
+  @@index([bookingId])
+  @@index([boardingStopId])
+}
+
+enum ChangeRequestType {
+  CANCELLATION
+  REBOOKING
+  NAME_CHANGE
+  OTHER
+}
+
+enum ChangeRequestStatus {
+  OPEN
+  APPROVED
+  REJECTED
+  DONE
+}
+
+model BookingChangeRequest {
+  id          String              @id @default(cuid())
+  bookingId   String
+  type        ChangeRequestType
+  status      ChangeRequestStatus @default(OPEN)
+  message     String?
+  resolution  String?
+  createdAt   DateTime            @default(now())
+  resolvedAt  DateTime?
+  resolvedById String?
+  booking     Booking             @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+
+  @@index([status, createdAt])
+}
+
+enum TicketStatus {
+  ISSUED
+  USED
+  CANCELLED
+  VOID
+}
+
+model Ticket {
+  id          String        @id @default(cuid())
+  number      String        @unique
+  passengerId String        @unique
+  departureId String
+  status      TicketStatus  @default(ISSUED)
+  /// The QR code carries an HMAC-signed token; this is its id (rotation possible without reissuing numbers).
+  qrTokenId   String        @unique
+  issuedAt    DateTime      @default(now())
+  usedAt      DateTime?
+  passenger   BookingPassenger @relation(fields: [passengerId], references: [id], onDelete: Restrict)
+  departure   TripDeparture    @relation(fields: [departureId], references: [id], onDelete: Restrict)
+  validations TicketValidation[]
+
+  @@index([departureId, status])
+}
+
+enum ValidationResult {
+  VALID
+  ALREADY_USED
+  WRONG_DEPARTURE
+  WRONG_STOP
+  CANCELLED
+  INVALID
+}
+
+model TicketValidation {
+  id            String           @id @default(cuid())
+  ticketId      String?
+  departureId   String?
+  departureStopId String?
+  result        ValidationResult
+  scannedAt     DateTime // device time
+  receivedAt    DateTime         @default(now())
+  scannedById   String?
+  deviceId      String?
+  offline       Boolean          @default(false)
+  /// Client-generated id → offline sync is idempotent.
+  clientEventId String           @unique
+  ticket        Ticket?          @relation(fields: [ticketId], references: [id], onDelete: SetNull)
+  departureStop DepartureStop?   @relation(fields: [departureStopId], references: [id], onDelete: SetNull)
+
+  @@index([ticketId, scannedAt])
+  @@index([departureId, scannedAt])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PAYMENTS
+// ─────────────────────────────────────────────────────────────────────────────
+
+enum PaymentProvider {
+  STRIPE
+  PAYPAL
+  BANK_TRANSFER
+  INVOICE
+  CASH
+}
+
+enum PaymentStatus {
+  CREATED
+  PENDING
+  SUCCEEDED
+  FAILED
+  CANCELLED
+  REFUNDED
+  PARTIALLY_REFUNDED
+}
+
+model Payment {
+  id            String          @id @default(cuid())
+  orderId       String
+  provider      PaymentProvider
+  /// Stripe Checkout Session / PaymentIntent id, PayPal order id …
+  providerRef   String?
+  status        PaymentStatus   @default(CREATED)
+  amountCents   Int
+  refundedCents Int             @default(0)
+  currency      String          @default("EUR")
+  succeededAt   DateTime?
+  failureReason String?
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  order         Order           @relation(fields: [orderId], references: [id], onDelete: Restrict)
+  refunds       Refund[]
+
+  @@unique([provider, providerRef])
+  @@index([orderId])
+}
+
+/// Raw provider webhook events. Unique (provider, providerEventId) makes processing idempotent.
+model PaymentEvent {
+  id              String          @id @default(cuid())
+  provider        PaymentProvider
+  providerEventId String
+  type            String
+  payload         Json
+  receivedAt      DateTime        @default(now())
+  processedAt     DateTime?
+  error           String?
+
+  @@unique([provider, providerEventId])
+  @@index([processedAt])
+}
+
+enum RefundStatus {
+  REQUESTED
+  PENDING
+  SUCCEEDED
+  FAILED
+}
+
+model Refund {
+  id          String       @id @default(cuid())
+  paymentId   String
+  amountCents Int
+  reason      String
+  status      RefundStatus @default(REQUESTED)
+  providerRef String?      @unique
+  createdById String?
+  createdAt   DateTime     @default(now())
+  completedAt DateTime?
+  payment     Payment      @relation(fields: [paymentId], references: [id], onDelete: Restrict)
+}
+
+enum VoucherKind {
+  PERCENT
+  AMOUNT
+}
+
+model Voucher {
+  id              String      @id @default(cuid())
+  code            String      @unique
+  kind            VoucherKind
+  /// PERCENT: basis points (1000 = 10 %). AMOUNT: cents.
+  value           Int
+  validFrom       DateTime?
+  validUntil      DateTime?
+  maxRedemptions  Int?
+  redemptionCount Int         @default(0)
+  minOrderCents   Int?
+  isActive        Boolean     @default(true)
+  createdAt       DateTime    @default(now())
+  redemptions     VoucherRedemption[]
+}
+
+model VoucherRedemption {
+  voucherId String
+  orderId   String
+  amountCents Int
+  createdAt DateTime @default(now())
+  voucher   Voucher  @relation(fields: [voucherId], references: [id], onDelete: Restrict)
+  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@id([voucherId, orderId])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SALES / CHARTER: INQUIRY → QUOTE → ORDER
+// ─────────────────────────────────────────────────────────────────────────────
+
+enum LeadStatus {
+  NEW
+  CONTACTED
+  QUOTE_IN_PROGRESS
+  QUOTE_SENT
+  WON
+  LOST
+}
+
+model Inquiry {
+  id           String     @id @default(cuid())
+  number       String     @unique
+  status       LeadStatus @default(NEW)
+  source       String // "website:bus-mieten-hannover", "phone", "email" …
+  tripType     String
+  /// The original submission, never modified after insert.
+  originalPayload Json
+  contactName  String
+  contactEmail String
+  contactPhone String?
+  companyName  String?
+  /// Prevents duplicates from double submission (hash of normalised payload + time bucket).
+  dedupeKey    String     @unique
+  customerId   String?
+  companyId    String?
+  assignedToId String?
+  lostReason   String?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  customer   Customer?  @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  company    Company?   @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  assignedTo User?      @relation("LeadAssignee", fields: [assignedToId], references: [id], onDelete: SetNull)
+  quotes     Quote[]
+  followUps  FollowUp[]
+
+  @@index([status, createdAt])
+}
+
+/// Versioned, approved calculation parameters. Code never hard-codes cost rates.
+model CalculationParameterSet {
+  id           String    @id @default(cuid())
+  name         String
+  version      Int
+  validFrom    DateTime
+  params       Json
+  approvedById String?
+  approvedAt   DateTime?
+  isActive     Boolean   @default(false)
+  createdAt    DateTime  @default(now())
+
+  quoteVersions QuoteVersion[]
+
+  @@unique([name, version])
+}
+
+enum QuoteStatus {
+  DRAFT
+  SENT
+  ACCEPTED
+  DECLINED
+  EXPIRED
+  SUPERSEDED
+}
+
+model Quote {
+  id         String      @id @default(cuid())
+  number     String      @unique
+  inquiryId  String?
+  customerId String
+  status     QuoteStatus @default(DRAFT)
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+
+  inquiry  Inquiry?       @relation(fields: [inquiryId], references: [id], onDelete: SetNull)
+  customer Customer       @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  versions QuoteVersion[]
+}
+
+model QuoteVersion {
+  id             String    @id @default(cuid())
+  quoteId        String
+  version        Int
+  validUntil     DateTime
+  /// Input + full cost breakdown as calculated (reproducible).
+  calculation    Json
+  parameterSetId String?
+  serviceDescription Json
+  passengerCount Int
+  vehicleClass   String
+  netCents       Int
+  taxCents       Int
+  grossCents     Int
+  taxRateBp      Int
+  pdfFileId      String?
+  sentAt         DateTime?
+  acceptedAt     DateTime?
+  createdById    String?
+  createdAt      DateTime  @default(now())
+
+  quote        Quote                    @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+  parameterSet CalculationParameterSet? @relation(fields: [parameterSetId], references: [id])
+  pdfFile      StoredFile?              @relation(fields: [pdfFileId], references: [id])
+  charterOrder CharterOrder?
+
+  @@unique([quoteId, version])
+}
+
+enum CharterOrderStatus {
+  CONFIRMED
+  PLANNED
+  IN_PROGRESS
+  COMPLETED
+  INVOICED
+  CANCELLED
+}
+
+model CharterOrder {
+  id             String             @id @default(cuid())
+  number         String             @unique
+  quoteVersionId String?            @unique
+  customerId     String
+  status         CharterOrderStatus @default(CONFIRMED)
+  passengerCount Int
+  luggageNotes   String?
+  specialRequirements String?
+  agreedGrossCents Int
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+
+  quoteVersion QuoteVersion? @relation(fields: [quoteVersionId], references: [id])
+  customer     Customer      @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  stops        CharterStop[]
+  runs         Run[]
+  invoices     Invoice[]
+}
+
+model CharterStop {
+  id             String       @id @default(cuid())
+  charterOrderId String
+  sequence       Int
+  stopId         String?
+  addressText    String
+  plannedAt      DateTime
+  kind           StopKind     @default(PICKUP_DROPOFF)
+  charterOrder   CharterOrder @relation(fields: [charterOrderId], references: [id], onDelete: Cascade)
+  stop           Stop?        @relation(fields: [stopId], references: [id])
+
+  @@unique([charterOrderId, sequence])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// DISPOSITION: RUNS, DRIVERS, ASSIGNMENTS
+// ─────────────────────────────────────────────────────────────────────────────
+
+enum RunKind {
+  SCHEDULED_DEPARTURE
+  CHARTER
+  TRANSFER
+  EMPTY_RUN // Leerfahrt
+}
+
+enum RunStatus {
+  PLANNED
+  CONFIRMED
+  DISPATCHED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+/// An operational journey ("Fahrt") that needs a vehicle and driver(s).
+model Run {
+  id             String    @id @default(cuid())
+  number         String    @unique
+  kind           RunKind
+  status         RunStatus @default(PLANNED)
+  departureId    String?   @unique
+  charterOrderId String?
+  title          String
+  startsAt       DateTime
+  endsAt         DateTime
+  originText     String
+  destinationText String
+  requiredSeats  Int
+  isCrossBorder  Boolean   @default(false)
+  notes          String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  departure    TripDeparture?      @relation(fields: [departureId], references: [id], onDelete: SetNull)
+  charterOrder CharterOrder?       @relation(fields: [charterOrderId], references: [id], onDelete: SetNull)
+  vehicles     VehicleAssignment[]
+  drivers      DriverAssignment[]
+  events       OperationalEvent[]
+  positions    VehiclePosition[]
+  threads      MessageThread[]
+
+  @@index([startsAt, endsAt])
+  @@index([status, startsAt])
+}
+
+enum AssignmentStatus {
+  TENTATIVE
+  CONFIRMED
+  CANCELLED
+}
+
+/// Exclusion constraint prevents overlapping non-cancelled assignments per vehicle — see migration.
+model VehicleAssignment {
+  id        String           @id @default(cuid())
+  runId     String
+  vehicleId String
+  startsAt  DateTime
+  endsAt    DateTime
+  status    AssignmentStatus @default(TENTATIVE)
+  createdAt DateTime         @default(now())
+  run       Run              @relation(fields: [runId], references: [id], onDelete: Cascade)
+  vehicle   Vehicle          @relation(fields: [vehicleId], references: [id], onDelete: Restrict)
+
+  @@index([vehicleId, startsAt])
+}
+
+enum DriverRole {
+  PRIMARY
+  SECOND
+  RELIEF
+}
+
+/// Exclusion constraint prevents overlapping non-cancelled assignments per driver — see migration.
+model DriverAssignment {
+  id        String           @id @default(cuid())
+  runId     String
+  driverId  String
+  role      DriverRole       @default(PRIMARY)
+  startsAt  DateTime
+  endsAt    DateTime
+  status    AssignmentStatus @default(TENTATIVE)
+  /// Result of the driving/rest-time check at assignment time. Never "legally safe" — only "no rule violation detected".
+  complianceCheck Json?
+  createdAt DateTime         @default(now())
+  run       Run              @relation(fields: [runId], references: [id], onDelete: Cascade)
+  driver    Driver           @relation(fields: [driverId], references: [id], onDelete: Restrict)
+
+  @@index([driverId, startsAt])
+}
+
+enum EmploymentStatus {
+  FULL_TIME
+  PART_TIME
+  MINI_JOB
+  FREELANCE
+  INACTIVE
+}
+
+model Driver {
+  id               String           @id @default(cuid())
+  userId           String?          @unique
+  firstName        String
+  lastName         String
+  phone            String?
+  email            String?
+  employmentStatus EmploymentStatus @default(FULL_TIME)
+  licenseClasses   String[] // D, DE, D1 …
+  licenseValidUntil DateTime?
+  qualificationValidUntil DateTime? // Schlüsselzahl 95 / BKrFQG
+  driverCardValidUntil DateTime?
+  medicalValidUntil DateTime?
+  homeDepot        String?
+  notes            String?
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
+  user        User?              @relation(fields: [userId], references: [id], onDelete: SetNull)
+  absences    DriverAbsence[]
+  documents   DriverDocument[]
+  assignments DriverAssignment[]
+  activities  DriverActivity[]
+}
+
+model DriverAbsence {
+  id        String   @id @default(cuid())
+  driverId  String
+  startsAt  DateTime
+  endsAt    DateTime
+  kind      String // URLAUB | KRANK | SCHULUNG | SONSTIGES
+  note      String?
+  driver    Driver   @relation(fields: [driverId], references: [id], onDelete: Cascade)
+
+  @@index([driverId, startsAt])
+}
+
+model DriverDocument {
+  id         String     @id @default(cuid())
+  driverId   String
+  type       String
+  fileId     String
+  validUntil DateTime?
+  createdAt  DateTime   @default(now())
+  driver     Driver     @relation(fields: [driverId], references: [id], onDelete: Cascade)
+  file       StoredFile @relation(fields: [fileId], references: [id], onDelete: Restrict)
+}
+
+enum ActivityType {
+  DRIVING
+  OTHER_WORK
+  AVAILABILITY
+  BREAK_REST
+}
+
+/// Recorded/planned driver activities (from tachograph import or plan) used by the rule engine.
+model DriverActivity {
+  id        String       @id @default(cuid())
+  driverId  String
+  type      ActivityType
+  startsAt  DateTime
+  endsAt    DateTime
+  source    String // PLAN | TACHOGRAPH_IMPORT | MANUAL
+  runId     String?
+  driver    Driver       @relation(fields: [driverId], references: [id], onDelete: Cascade)
+
+  @@index([driverId, startsAt])
+}
+
+/// Versioned, sourced rule configuration for driving/rest-time checks (VO (EG) 561/2006 etc.).
+model ComplianceRuleSet {
+  id          String    @id @default(cuid())
+  code        String // "EU-561-2006"
+  version     Int
+  title       String
+  sources     Json // legal references with URLs and consolidation date
+  params      Json
+  validFrom   DateTime
+  reviewedBy  String?
+  reviewedAt  DateTime?
+  isActive    Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+
+  @@unique([code, version])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// OPERATIONS (OPS CENTER / DRIVER APP)
+// ─────────────────────────────────────────────────────────────────────────────
+
+enum OperationalEventType {
+  RUN_STARTED
+  STOP_ARRIVED
+  STOP_DEPARTED
+  DELAY_REPORTED
+  ISSUE_REPORTED
+  VEHICLE_BREAKDOWN
+  DRIVER_CHANGED
+  VEHICLE_CHANGED
+  RUN_COMPLETED
+  NOTE
+}
+
+model OperationalEvent {
+  id            String               @id @default(cuid())
+  runId         String
+  type          OperationalEventType
+  payload       Json
+  occurredAt    DateTime // device/event time
+  recordedAt    DateTime             @default(now())
+  reportedById  String?
+  source        String // DRIVER_APP | OPS | SYSTEM
+  clientEventId String               @unique
+  run           Run                  @relation(fields: [runId], references: [id], onDelete: Cascade)
+
+  @@index([runId, occurredAt])
+  @@index([type, recordedAt])
+}
+
+/// Only real positions. "Live" is derived from recordedAt age, never simulated.
+model VehiclePosition {
+  id         String   @id @default(cuid())
+  vehicleId  String
+  runId      String?
+  latitude   Float
+  longitude  Float
+  accuracyM  Float?
+  speedKmh   Float?
+  heading    Float?
+  source     String // TELEMATICS | DRIVER_APP | MANUAL
+  recordedAt DateTime
+  receivedAt DateTime @default(now())
+  vehicle    Vehicle  @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  run        Run?     @relation(fields: [runId], references: [id], onDelete: SetNull)
+
+  @@index([vehicleId, recordedAt(sort: Desc)])
+}
+
+model MessageThread {
+  id        String    @id @default(cuid())
+  subject   String
+  runId     String?
+  createdAt DateTime  @default(now())
+  run       Run?      @relation(fields: [runId], references: [id], onDelete: SetNull)
+  messages  Message[]
+}
+
+enum MessagePriority {
+  NORMAL
+  HIGH
+  URGENT
+}
+
+model Message {
+  id        String          @id @default(cuid())
+  threadId  String
+  senderId  String
+  body      String
+  priority  MessagePriority @default(NORMAL)
+  createdAt DateTime        @default(now())
+  thread    MessageThread   @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  sender    User            @relation(fields: [senderId], references: [id], onDelete: Restrict)
+  receipts  MessageReceipt[]
+
+  @@index([threadId, createdAt])
+}
+
+model MessageReceipt {
+  messageId String
+  userId    String
+  readAt    DateTime?
+  message   Message   @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([messageId, userId])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// INVOICING
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Gapless per-scope, per-year counters. Incremented with UPDATE … RETURNING inside the business transaction.
+model NumberSequence {
+  scope     String // INVOICE | CREDIT_NOTE | ORDER | BOOKING | TICKET | INQUIRY | QUOTE | CHARTER | RUN
+  year      Int
+  nextValue Int    @default(1)
+
+  @@id([scope, year])
+}
+
+enum InvoiceKind {
+  INVOICE
+  CREDIT_NOTE
+}
+
+enum InvoiceStatus {
+  DRAFT
+  ISSUED
+  PARTIALLY_PAID
+  PAID
+  CANCELLED
+}
+
+model Invoice {
+  id             String        @id @default(cuid())
+  /// Assigned only when issued (gapless). Drafts have no number.
+  number         String?       @unique
+  kind           InvoiceKind   @default(INVOICE)
+  status         InvoiceStatus @default(DRAFT)
+  customerId     String?
+  companyId      String?
+  orderId        String?
+  charterOrderId String?
+  correctsInvoiceId String?
+  /// Snapshot of the billing address at issue time.
+  billingAddress Json
+  issueDate      DateTime?
+  serviceFrom    DateTime?
+  serviceTo      DateTime?
+  dueDate        DateTime?
+  currency       String        @default("EUR")
+  netCents       Int           @default(0)
+  taxCents       Int           @default(0)
+  grossCents     Int           @default(0)
+  paidCents      Int           @default(0)
+  pdfFileId      String?
+  eInvoiceFormat String? // XRECHNUNG | ZUGFERD — pending tax-advisor confirmation
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  customer     Customer?     @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  company      Company?      @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  order        Order?        @relation(fields: [orderId], references: [id], onDelete: Restrict)
+  charterOrder CharterOrder? @relation(fields: [charterOrderId], references: [id], onDelete: Restrict)
+  corrects     Invoice?      @relation("Correction", fields: [correctsInvoiceId], references: [id])
+  corrections  Invoice[]     @relation("Correction")
+  pdfFile      StoredFile?   @relation(fields: [pdfFileId], references: [id])
+  lines        InvoiceLine[]
+
+  @@index([status, dueDate])
+}
+
+model InvoiceLine {
+  id           String  @id @default(cuid())
+  invoiceId    String
+  sort         Int
+  description  String
+  quantity     Decimal @db.Decimal(12, 3)
+  unit         String  @default("Stk")
+  unitNetCents Int
+  taxRateBp    Int
+  /// Tax category code (e.g. S = standard, AE = reverse charge). Values need tax-advisor sign-off.
+  taxCategory  String  @default("S")
+  netCents     Int
+  taxCents     Int
+  grossCents   Int
+  invoice      Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  @@unique([invoiceId, sort])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CMS, SEO, REDIRECTS
+// ─────────────────────────────────────────────────────────────────────────────
+
+enum PageKind {
+  HOME
+  LANDING
+  REGION
+  SERVICE
+  GUIDE
+  LEGAL
+}
+
+model Page {
+  id             String        @id @default(cuid())
+  path           String        @unique // "/bus-mieten-hannover"
+  kind           PageKind
+  status         PublishStatus @default(DRAFT)
+  title          String
+  /// Structured content blocks validated by zod schemas. No raw HTML.
+  blocks         Json
+  seoTitle       String
+  seoDescription String
+  canonicalPath  String?
+  noindex        Boolean       @default(false)
+  ogImageId      String?
+  publishedAt    DateTime?
+  updatedById    String?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  faqs Faq[]
+
+  @@index([kind, status])
+}
+
+model Faq {
+  id       String  @id @default(cuid())
+  scope    String  @default("GLOBAL") // GLOBAL | TRIP | PAGE
+  tripId   String?
+  pageId   String?
+  question String
+  answer   String
+  sort     Int     @default(0)
+  isActive Boolean @default(true)
+  trip     Trip?   @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  page     Page?   @relation(fields: [pageId], references: [id], onDelete: Cascade)
+
+  @@index([scope, sort])
+}
+
+model Redirect {
+  id         String   @id @default(cuid())
+  fromPath   String   @unique
+  toPath     String
+  statusCode Int      @default(301)
+  isActive   Boolean  @default(true)
+  note       String?
+  createdAt  DateTime @default(now())
+}
+
+model SiteSetting {
+  key       String   @id
+  value     Json
+  updatedAt DateTime @updatedAt
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// NOTIFICATIONS, JOBS, MIGRATION BOOKKEEPING
+// ─────────────────────────────────────────────────────────────────────────────
+
+enum NotificationStatus {
+  QUEUED
+  SENT
+  FAILED
+  SUPPRESSED
+}
+
+model Notification {
+  id                String             @id @default(cuid())
+  channel           String // EMAIL | PUSH
+  recipient         String
+  template          String
+  payload           Json
+  status            NotificationStatus @default(QUEUED)
+  providerMessageId String?
+  attempts          Int                @default(0)
+  lastError         String?
+  relatedType       String?
+  relatedId         String?
+  createdAt         DateTime           @default(now())
+  sentAt            DateTime?
+
+  @@index([status, createdAt])
+  @@index([relatedType, relatedId])
+}
+
+enum JobStatus {
+  PENDING
+  RUNNING
+  SUCCEEDED
+  FAILED
+  DEAD
+}
+
+/// Postgres-backed job queue (FOR UPDATE SKIP LOCKED). No extra infrastructure needed at current volume.
+model BackgroundJob {
+  id         String    @id @default(cuid())
+  type       String
+  payload    Json
+  status     JobStatus @default(PENDING)
+  runAt      DateTime  @default(now())
+  attempts   Int       @default(0)
+  maxAttempts Int      @default(8)
+  lastError  String?
+  lockedAt   DateTime?
+  lockedBy   String?
+  dedupeKey  String?   @unique
+  createdAt  DateTime  @default(now())
+  finishedAt DateTime?
+
+  @@index([status, runAt])
+}
+
+/// Maps legacy (Lovable/Supabase) identifiers to new rows. Makes migration repeatable and auditable.
+model LegacyIdMap {
+  source      String // "supabase:wberoibxqpffhnyvjnci"
+  legacyTable String
+  legacyId    String
+  entityType  String
+  entityId    String
+  importedAt  DateTime @default(now())
+  runId       String
+
+  @@id([source, legacyTable, legacyId])
+  @@index([entityType, entityId])
+}

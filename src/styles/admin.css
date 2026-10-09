@@ -1,0 +1,273 @@
+/* Back office: a work tool. Dense, calm, high contrast. No scroll films here. */
+
+.adm {
+  display: grid;
+  grid-template-columns: 240px minmax(0, 1fr);
+  min-block-size: 100svh;
+  background: var(--bg-subtle);
+}
+
+.adm-side {
+  position: sticky;
+  inset-block-start: 0;
+  block-size: 100svh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  padding: 1rem 0.75rem;
+  background: var(--ink);
+  color: #d9e0dc;
+}
+.adm-side__brand {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.25rem 0.5rem 0.5rem;
+}
+.adm-side nav {
+  display: grid;
+  gap: 1.1rem;
+}
+.adm-side__group h2 {
+  margin: 0 0 0.35rem 0.5rem;
+  font-family: var(--font-mono);
+  font-size: var(--step--2);
+  letter-spacing: var(--track-label);
+  text-transform: uppercase;
+  color: #7f8a85;
+  font-weight: 500;
+}
+.adm-side__group ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 2px;
+}
+.adm-side a {
+  display: block;
+  padding: 0.45rem 0.6rem;
+  border-radius: var(--radius-sm);
+  text-decoration: none;
+  font-size: var(--step--1);
+  color: inherit;
+}
+.adm-side a:hover {
+  background: color-mix(in oklab, #fff 7%, transparent);
+}
+.adm-side a[aria-current="page"] {
+  background: color-mix(in oklab, var(--brand) 18%, transparent);
+  color: #fff;
+  box-shadow: inset 2px 0 0 var(--brand);
+}
+.adm-side__foot {
+  margin-block-start: auto;
+  display: grid;
+  gap: 0.5rem;
+  padding: 0.75rem 0.5rem 0;
+  border-block-start: 1px solid color-mix(in oklab, #fff 10%, transparent);
+  font-size: var(--step--1);
+}
+.adm-side__foot .who {
+  color: #fff;
+  font-weight: 600;
+}
+.adm-side__foot .roles {
+  color: #7f8a85;
+  font-family: var(--font-mono);
+  font-size: var(--step--2);
+}
+.adm-side__foot button {
+  justify-self: start;
+  --btn-bg: transparent;
+  --btn-fg: #d9e0dc;
+  --btn-hover: color-mix(in oklab, #fff 8%, transparent);
+  border-color: color-mix(in oklab, #fff 18%, transparent);
+}
+
+.adm-main {
+  min-inline-size: 0;
+  padding: 1.5rem clamp(1rem, 0.5rem + 2vw, 2.5rem) 4rem;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr); /* lets wide tables scroll inside .table-wrap instead of widening the page */
+  align-content: start;
+  gap: 1.5rem;
+}
+
+.adm-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.adm-head h1 {
+  font-size: var(--step-3);
+}
+.adm-head p {
+  color: var(--fg-muted);
+  font-size: var(--step--1);
+}
+
+.kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 160px), 1fr));
+  gap: 1px;
+  background: var(--line);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.kpi {
+  display: grid;
+  gap: 0.25rem;
+  padding: 1rem 1.1rem;
+  background: var(--bg);
+}
+.kpi__label {
+  color: var(--fg-muted);
+  font-size: var(--step--1);
+}
+.kpi__value {
+  font-size: var(--step-3);
+  font-weight: 700;
+  letter-spacing: var(--track-tight);
+  font-variant-numeric: tabular-nums;
+}
+.kpi__hint {
+  color: var(--fg-subtle);
+  font-size: var(--step--2);
+}
+
+.panel {
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+.panel__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.8rem 1rem;
+  border-block-end: 1px solid var(--line);
+}
+.panel__head h2 {
+  font-size: var(--step-1);
+}
+
+.table-wrap {
+  overflow-x: auto;
+}
+table.data {
+  inline-size: 100%;
+  border-collapse: collapse;
+  font-size: var(--step--1);
+}
+table.data th,
+table.data td {
+  padding: 0.6rem 1rem;
+  text-align: start;
+  border-block-end: 1px solid var(--line);
+  white-space: nowrap;
+}
+table.data th {
+  position: sticky;
+  inset-block-start: 0;
+  background: var(--bg-subtle);
+  color: var(--fg-muted);
+  font-weight: 600;
+}
+table.data tbody tr:hover {
+  background: var(--bg-subtle);
+}
+table.data td.roles-cell {
+  white-space: normal;
+  min-inline-size: 30rem;
+}
+table.data td.num {
+  text-align: end;
+  font-variant-numeric: tabular-nums;
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35em;
+  padding: 0.12em 0.6em;
+  border-radius: var(--radius-pill);
+  font-size: var(--step--2);
+  font-weight: 600;
+  background: var(--neutral-bg);
+  color: var(--fg-muted);
+}
+.pill::before {
+  content: "";
+  inline-size: 0.5em;
+  block-size: 0.5em;
+  border-radius: 50%;
+  background: currentColor;
+}
+.pill--ok {
+  background: var(--ok-bg);
+  color: var(--ok);
+}
+.pill--warn {
+  background: var(--warn-bg);
+  color: var(--warn);
+}
+.pill--danger {
+  background: var(--danger-bg);
+  color: var(--danger);
+}
+.pill--info {
+  background: var(--info-bg);
+  color: var(--info);
+}
+
+.empty {
+  display: grid;
+  justify-items: start;
+  gap: 0.4rem;
+  padding: 1.5rem 1rem;
+  color: var(--fg-muted);
+  font-size: var(--step--1);
+}
+.empty strong {
+  color: var(--fg);
+}
+
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: end;
+  padding: 0.8rem 1rem;
+  border-block-end: 1px solid var(--line);
+}
+.filters .field {
+  flex: 1 1 180px;
+  min-inline-size: 0;
+}
+.filters fieldset.field {
+  flex-basis: 100%;
+}
+
+@media (max-width: 860px) {
+  .adm {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .adm-side {
+    position: static;
+    block-size: auto;
+  }
+  .adm-side nav {
+    display: flex;
+    gap: 1rem;
+    overflow-x: auto;
+  }
+  .adm-side__group {
+    flex: none;
+  }
+}

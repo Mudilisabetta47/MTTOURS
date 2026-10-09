@@ -1,0 +1,130 @@
+/*
+ * METROPOL TOURS — design tokens. The single source of design decisions.
+ * Brand values are taken from the existing assets:
+ *   logo green  #0AC55C  (metropol-logo.png, dominant non-black colour)
+ *   logo black  #000000
+ *   typeface    DM Sans   (current metours.de)
+ *   livery lime ≈ #8CC63F (photo of the MAN Lion's Coach; exact RAL to be confirmed)
+ * Derived colours are mixed, not hard-coded.
+ */
+
+:root {
+  /* Brand */
+  --brand: #0ac55c;
+  --brand-strong: #07a84d; /* hover/pressed on dark */
+  --brand-deep: #05693a; /* green text/labels on light backgrounds (AA contrast) */
+  --livery: #8cc63f;
+  --ink: #050607;
+  --night: #030507;
+  --bone: #f4f5f1;
+  --paper: #ffffff;
+
+  /* Semantic (light) */
+  --bg: var(--paper);
+  --bg-subtle: #f6f7f5;
+  --bg-muted: #eef0ec;
+  --fg: #0d1110;
+  --fg-muted: #4f5a55;
+  --fg-subtle: #75807a;
+  --line: color-mix(in oklab, var(--fg) 11%, transparent);
+  --line-strong: color-mix(in oklab, var(--fg) 20%, transparent);
+  --focus: var(--brand);
+  --on-brand: var(--ink);
+
+  --ok: #0f8a4b;
+  --ok-bg: color-mix(in oklab, var(--ok) 12%, var(--bg));
+  --warn: #9a6400;
+  --warn-bg: color-mix(in oklab, #f2b300 18%, var(--bg));
+  --danger: #c0392b;
+  --danger-bg: color-mix(in oklab, var(--danger) 11%, var(--bg));
+  --info: #1f5fbf;
+  --info-bg: color-mix(in oklab, var(--info) 11%, var(--bg));
+  --neutral-bg: var(--bg-muted);
+
+  /* Type */
+  --font-sans: var(--font-dm-sans), -apple-system, BlinkMacSystemFont, "Segoe UI Variable", "Segoe UI", Roboto, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+
+  --step--2: clamp(0.69rem, 0.67rem + 0.08vw, 0.75rem);
+  --step--1: clamp(0.81rem, 0.79rem + 0.1vw, 0.875rem);
+  --step-0: clamp(0.94rem, 0.91rem + 0.15vw, 1.0625rem);
+  --step-1: clamp(1.1rem, 1.04rem + 0.3vw, 1.3rem);
+  --step-2: clamp(1.3rem, 1.18rem + 0.6vw, 1.7rem);
+  --step-3: clamp(1.6rem, 1.35rem + 1.2vw, 2.4rem);
+  --step-4: clamp(2rem, 1.5rem + 2.4vw, 3.6rem);
+  --step-5: clamp(2.6rem, 1.7rem + 4.4vw, 5.6rem);
+  --step-6: clamp(3.2rem, 1.8rem + 7vw, 9rem);
+  --display: clamp(3.6rem, 1.4rem + 11vw, 13rem);
+
+  --track-display: -0.035em;
+  --track-tight: -0.015em;
+  --track-label: 0.14em;
+  --lh-display: 0.92;
+  --lh-tight: 1.15;
+  --lh-body: 1.55;
+
+  /* Space & shape */
+  --gutter: clamp(1rem, 0.6rem + 2.5vw, 4rem);
+  --sect-y: clamp(5rem, 3rem + 8vw, 13rem);
+  --maxw: 1520px;
+  --maxw-text: 64ch;
+  --radius-xs: 4px;
+  --radius-sm: 8px;
+  --radius: 12px;
+  --radius-lg: 20px;
+  --radius-xl: 32px;
+  --radius-pill: 999px;
+  --shadow-sm: 0 1px 2px color-mix(in oklab, var(--ink) 8%, transparent);
+  --shadow-panel:
+    0 2px 4px color-mix(in oklab, var(--ink) 6%, transparent),
+    0 18px 40px -12px color-mix(in oklab, var(--ink) 18%, transparent),
+    0 60px 120px -40px color-mix(in oklab, var(--ink) 22%, transparent);
+
+  /* Motion */
+  --dur-xs: 120ms;
+  --dur-sm: 240ms;
+  --dur-md: 380ms;
+  --dur-lg: 620ms;
+  --dur-xl: 980ms;
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-swift: cubic-bezier(0.22, 0.61, 0.36, 1);
+
+  color-scheme: light;
+}
+
+/* Dark theme: back office (OPS defaults to dark) and users who prefer it. */
+:root[data-theme="dark"] {
+  --bg: #0b0e0d;
+  --bg-subtle: #111614;
+  --bg-muted: #18201d;
+  --fg: #e9eeeb;
+  --fg-muted: #a5b0aa;
+  --fg-subtle: #7b8680;
+  --line: color-mix(in oklab, var(--fg) 10%, transparent);
+  --line-strong: color-mix(in oklab, var(--fg) 18%, transparent);
+  --brand-deep: #3ee08a;
+  --ok: #3ccf82;
+  --warn: #f2b300;
+  --danger: #ff6b5b;
+  --info: #6ea8ff;
+  color-scheme: dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root[data-theme="system"] {
+    --bg: #0b0e0d;
+    --bg-subtle: #111614;
+    --bg-muted: #18201d;
+    --fg: #e9eeeb;
+    --fg-muted: #a5b0aa;
+    --fg-subtle: #7b8680;
+    --line: color-mix(in oklab, var(--fg) 10%, transparent);
+    --line-strong: color-mix(in oklab, var(--fg) 18%, transparent);
+    --brand-deep: #3ee08a;
+    --ok: #3ccf82;
+    --warn: #f2b300;
+    --danger: #ff6b5b;
+    --info: #6ea8ff;
+    color-scheme: dark;
+  }
+}
