@@ -151,6 +151,12 @@ textarea {
   --btn-hover: var(--bg-muted);
   border-color: var(--line-strong);
 }
+.btn--ghost-light {
+  --btn-bg: transparent;
+  --btn-fg: #fff;
+  --btn-hover: color-mix(in oklab, #fff 12%, transparent);
+  border-color: color-mix(in oklab, #fff 38%, transparent);
+}
 .btn--sm {
   min-block-size: 36px;
   padding: 0.35em 0.85em;
@@ -244,4 +250,9 @@ fieldset.field {
     transition-duration: 1ms !important;
     scroll-behavior: auto !important;
   }
+}
+
+/* Component display rules must never override the hidden attribute. */
+[hidden] {
+  display: none !important;
 }
