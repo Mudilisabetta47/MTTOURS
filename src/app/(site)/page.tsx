@@ -18,6 +18,7 @@ import { PlaceMarquee } from "@/components/home/marquee";
 import { Statement } from "@/components/home/statement";
 import { JsonLd, organizationJsonLd } from "@/components/site/json-ld";
 import { KiImage } from "@/components/site/ki-image";
+import { HeroSlider, type HeroSlide } from "@/components/home/hero-slider";
 
 export const metadata: Metadata = {
   title: { absolute: "Busreisen & Bus mieten ab Hannover, Bremen und Hamburg | METROPOL TOURS" },
@@ -38,6 +39,15 @@ export const metadata: Metadata = {
 
 const tel = COMPANY.phone.replace(/\s/g, "");
 
+/** User-provided mood images (AI-generated, labelled) plus the real photo of our coach. */
+const HERO_SLIDES: HeroSlide[] = [
+  { src: "/media/ki/slide-kueste.webp", alt: "Reisebus in Metropol-Grün auf einer Küstenstraße am Mittelmeer bei Sonnenuntergang", label: "Ans Mittelmeer", ki: true, position: "62% 60%" },
+  { src: "/media/ki/slide-bergsee.webp", alt: "Paar am Ufer eines Bergsees mit Kirche auf einer kleinen Insel", label: "Berge & Seen", ki: true, position: "50% 62%" },
+  { src: "/media/ki/slide-nacht.webp", alt: "Reisebus in Metropol-Grün nachts auf einer Straße vor Berggipfeln", label: "Über Nacht ans Ziel", ki: true, position: "62% 55%" },
+  { src: "/media/ki/slide-wir-sind-da.webp", alt: "Reisebus mit der Anzeige „Wir sind da!“ in der Abenddämmerung", label: "Ankommen", ki: true, position: "58% 55%" },
+  { src: "/media/metropol-man-lions-coach.jpg", alt: "Reisebus von METROPOL TOURS: MAN Lion’s Coach in limettengrüner Lackierung", label: "Unser Reisebus", ki: false, position: "62% 55%" },
+];
+
 export default async function HomePage() {
   const trips = (await listPublishedTrips(db)).slice(0, 6);
   const bookableCount = trips.filter((t) => t.next).length;
@@ -48,16 +58,7 @@ export default async function HomePage() {
 
       {/* 01 HERO */}
       <ScrollStage className="hero" start="top top" end="bottom top" reducedValue={0} aria-labelledby="hero-title">
-        <div className="hero__media">
-          <Image
-            src="/media/metropol-man-lions-coach.jpg"
-            alt="Reisebus von METROPOL TOURS: MAN Lion’s Coach in limettengrüner Lackierung"
-            fill
-            priority
-            sizes="100vw"
-            quality={80}
-          />
-        </div>
+        <HeroSlider slides={HERO_SLIDES} />
         <div className="hero__shade" aria-hidden="true" />
         <div className="shell hero__content">
           <p className="mono-label hero__kicker" data-reveal="fade">
@@ -77,25 +78,6 @@ export default async function HomePage() {
           </div>
         </div>
         <div className="hero__grain" aria-hidden="true" />
-        <ul className="hero__bar shell" aria-label="Auf einen Blick">
-          <li>
-            <span className="mono-label">Zustiege</span>
-            <strong>Hamburg · Bremen · Hannover</strong>
-          </li>
-          <li>
-            <span className="mono-label">Busvermietung</span>
-            <strong>Mit Fahrer, schriftliches Angebot</strong>
-          </li>
-          <li>
-            <span className="mono-label">Erreichbar</span>
-            <strong>
-              <a href={`tel:${tel}`}>{COMPANY.phoneDisplay}</a> · {COMPANY.hours}
-            </strong>
-          </li>
-          <li className="hero__scrollcue" aria-hidden="true">
-            <span className="hero__scroll" />
-          </li>
-        </ul>
       </ScrollStage>
 
       {/* 02 SEARCH */}

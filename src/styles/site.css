@@ -356,7 +356,7 @@
   display: grid;
   align-content: end;
   gap: 1.4rem;
-  padding-block: 7rem clamp(9rem, 6rem + 6vw, 13rem);
+  padding-block: 7rem clamp(10.5rem, 8rem + 5vw, 14rem);
   transform: translate3d(0, calc(var(--p) * -12%), 0);
   opacity: calc(1 - var(--p) * 1.4);
 }
@@ -2066,4 +2066,165 @@
 .window__photo img {
   transform: scale(calc(1.18 - var(--p) * 0.18));
   transition: none;
+}
+
+/* ── Hero slider ─────────────────────────────────────────────────────── */
+.hslider__slide {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity 1400ms var(--ease-swift);
+}
+.hslider__slide[data-on="true"] {
+  opacity: 1;
+  z-index: 1;
+}
+.hslider__slide img {
+  transform: scale(1.12);
+  transition: transform 9000ms linear;
+}
+.hslider__slide[data-on="true"] img {
+  transform: scale(1);
+}
+.hslider__tag {
+  position: absolute;
+  z-index: 3;
+  inset: 5.5rem var(--gutter) auto auto;
+  padding: 0.25rem 0.6rem;
+  border-radius: var(--radius-pill);
+  background: rgb(0 0 0 / 0.45);
+  backdrop-filter: blur(8px);
+  color: rgb(255 255 255 / 0.85);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+.hslider__nav {
+  position: absolute;
+  z-index: 3;
+  inset: auto 0 clamp(5.5rem, 3.5rem + 4vw, 7.5rem) 0;
+  display: flex;
+  align-items: flex-end;
+  gap: 1rem;
+  margin-inline: auto;
+  opacity: calc(1 - var(--p) * 2);
+}
+.hslider__dots {
+  display: flex;
+  flex: 1;
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.hslider__dots li {
+  flex: 1;
+  max-inline-size: 190px;
+}
+.hslider__dot {
+  display: grid;
+  gap: 0.45rem;
+  inline-size: 100%;
+  padding: 0.4rem 0;
+  border: 0;
+  background: none;
+  color: rgb(255 255 255 / 0.6);
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-align: start;
+  cursor: pointer;
+  transition: color var(--dur-sm);
+}
+.hslider__dot:hover,
+.hslider__dot[aria-current="true"] {
+  color: #fff;
+}
+.hslider__bar {
+  position: relative;
+  display: block;
+  block-size: 3px;
+  border-radius: 3px;
+  background: rgb(255 255 255 / 0.28);
+  overflow: hidden;
+}
+.hslider__fill {
+  position: absolute;
+  inset: 0;
+  background: var(--brand);
+  transform-origin: left;
+  transform: scaleX(0);
+}
+.hslider__dot[aria-current="true"] .hslider__fill {
+  transform: scaleX(1);
+}
+.hslider__fill[data-run="true"] {
+  animation: hslider-fill linear both;
+}
+@keyframes hslider-fill {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+.hslider__pause {
+  display: grid;
+  place-items: center;
+  flex: none;
+  inline-size: 38px;
+  block-size: 38px;
+  border: 1px solid rgb(255 255 255 / 0.35);
+  border-radius: 50%;
+  background: rgb(0 0 0 / 0.25);
+  backdrop-filter: blur(8px);
+  color: #fff;
+  cursor: pointer;
+}
+.hslider__pause:hover {
+  background: rgb(0 0 0 / 0.45);
+}
+@media (max-width: 760px) {
+  .hslider__label {
+    position: absolute;
+    inline-size: 1px;
+    block-size: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+  .hslider__dot {
+    padding-block: 0.9rem;
+  }
+  .hslider__tag {
+    inset-block-start: 5rem;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .hslider__slide,
+  .hslider__slide img {
+    transition: none;
+  }
+}
+/* slider hero: shorter, so the search card is visible in the first screen */
+.hero:has(.hslider) {
+  block-size: min(86svh, 880px);
+  min-block-size: 600px;
+}
+.hero .hslider img {
+  filter: saturate(1.04) contrast(1.04) brightness(0.96);
+}
+.hero:has(.hslider) .hero__shade {
+  background:
+    linear-gradient(90deg, rgb(3 5 7 / 0.78) 0%, rgb(3 5 7 / 0.42) 38%, rgb(3 5 7 / 0) 68%),
+    linear-gradient(180deg, rgb(3 10 20 / 0.45) 0%, rgb(3 5 7 / 0) 22%, rgb(3 5 7 / 0) 58%, rgb(3 5 7 / 0.82) 100%);
+}
+@media (max-width: 760px) {
+  .hero:has(.hslider) {
+    block-size: auto;
+    min-block-size: 640px;
+  }
+  .hero:has(.hslider) .hero__shade {
+    background: linear-gradient(180deg, rgb(3 5 7 / 0.35) 0%, rgb(3 5 7 / 0.1) 30%, rgb(3 5 7 / 0.88) 80%);
+  }
 }
