@@ -27,7 +27,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
       </a>
       <aside className="adm-side" aria-label="Hauptnavigation">
         <div className="adm-side__brand">
-          <Image src="/brand/metropol-logo-white.png" alt="METROPOL TOURS" width={118} height={48} />
+          <Image src="/brand/metropol-logo-light-hd.png" alt="METROPOL TOURS" width={118} height={48} />
         </div>
         <nav>
           {groups.map((g) => (

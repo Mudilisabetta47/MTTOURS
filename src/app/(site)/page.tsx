@@ -2,12 +2,12 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { db } from "@/server/db/client";
-import { listBookableTrips } from "@/server/catalog/public";
+import { listPublishedTrips } from "@/server/catalog/trips";
+import { TripCard } from "@/components/trip/trip-card";
+import "@/styles/trip.css";
 import { COMPANY } from "@/content/company";
 import { DEPARTURE_POINTS } from "@/content/places";
 import { OCCASIONS } from "@/content/rental";
-import { formatEur } from "@/lib/money";
-import { formatDate } from "@/lib/time";
 import { ScrollStage } from "@/components/site/scroll-stage";
 import { SplitText } from "@/components/site/split-text";
 import { SearchPanel } from "@/components/home/search-panel";
@@ -17,8 +17,7 @@ import { RouteMap } from "@/components/home/route-map";
 import { PlaceMarquee } from "@/components/home/marquee";
 import { Statement } from "@/components/home/statement";
 import { JsonLd, organizationJsonLd } from "@/components/site/json-ld";
-
-export const revalidate = 300;
+import { KiImage } from "@/components/site/ki-image";
 
 export const metadata: Metadata = {
   title: { absolute: "Busreisen & Bus mieten ab Hannover, Bremen und Hamburg | METROPOL TOURS" },
@@ -40,7 +39,8 @@ export const metadata: Metadata = {
 const tel = COMPANY.phone.replace(/\s/g, "");
 
 export default async function HomePage() {
-  const trips = await listBookableTrips(db, {}, new Date(), 6);
+  const trips = (await listPublishedTrips(db)).slice(0, 6);
+  const bookableCount = trips.filter((t) => t.next).length;
 
   return (
     <>
@@ -107,23 +107,31 @@ export default async function HomePage() {
       <section className="sec shell" aria-labelledby="trips-title">
         <div className="sec-head">
           <p className="mono-label">03 · Reisen</p>
-          <SplitText as="h2" id="trips-title" text="Mit festen Terminen." />
+          <SplitText as="h2" id="trips-title" text="Reisen mit festen Terminen." />
         </div>
         {trips.length > 0 ? (
-          <div className="trips__grid">
-            {trips.map((t) => (
-              <Link key={t.slug} href={`/reisen/${t.slug}` as never} className="trip-card" data-reveal="up">
-                <span className="mono-label">{t.destination}</span>
-                <strong style={{ fontSize: "var(--step-2)" }}>{t.title}</strong>
-                <span>
-                  {t.durationDays} Tage · ab {formatDate(t.nextDepartureAt)}
-                  {t.departuresCount > 1 ? ` · ${t.departuresCount} Termine` : ""}
-                </span>
-                <span>Zustieg: {t.boardingCities.join(", ")}</span>
-                <strong>ab {formatEur(t.fromPriceCents)} p. P.</strong>
-              </Link>
-            ))}
-          </div>
+          <>
+            <div className="tgrid">
+              {trips.map((t) => (
+                <TripCard key={t.slug} t={t} />
+              ))}
+            </div>
+            <div className="trips__more">
+              <p className="tcount">
+                {bookableCount > 0
+                  ? `${bookableCount} ${bookableCount === 1 ? "Reise" : "Reisen"} mit freien Plätzen.`
+                  : "Für diese Reisen werden gerade neue Termine geplant – Sie können sich unverbindlich vormerken lassen."}
+              </p>
+              <div className="hero__ctas">
+                <Link className="btn btn--brand btn--arrow" href="/pauschalreisen">
+                  Alle Pauschalreisen
+                </Link>
+                <Link className="btn btn--ghost" href="/wochenendtrips">
+                  Wochenendtrips
+                </Link>
+              </div>
+            </div>
+          </>
         ) : (
           <div className="trips__empty on-dark" data-reveal="up">
             <div style={{ display: "grid", gap: "0.8rem" }}>
@@ -152,7 +160,9 @@ export default async function HomePage() {
       <ScrollStage className="window" start="top top" end="bottom bottom" aria-label="Blick aus dem Busfenster">
         <div className="window__track">
           <div className="window__stage">
-            <div className="window__view" aria-hidden="true" />
+            <div className="window__view">
+              <KiImage src="/media/ki/hero-beach-swimming.jpg" alt="Badebucht am Mittelmeer bei Sonnenuntergang" className="window__photo" labelPosition="bl" />
+            </div>
             <div className="window__frame" aria-hidden="true" />
             <div className="window__copy">
               <h2>Der Blick aus dem Fenster.</h2>

@@ -16,7 +16,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
   return (
     <main id="main" className="login">
       <div className="login__card">
-        <Image src="/brand/metropol-logo.png" alt="METROPOL TOURS GmbH" width={168} height={68} priority />
+        <Image src="/brand/metropol-logo-hd.png" alt="METROPOL TOURS GmbH" width={168} height={68} priority />
         <h1>Anmelden</h1>
         <p className="login__lead">Für Mitarbeitende, Fahrer und Kunden mit Konto.</p>
         <LoginForm next={next ? safeNextPath(next) : undefined} />

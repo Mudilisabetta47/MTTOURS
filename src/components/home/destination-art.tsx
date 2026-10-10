@@ -1,4 +1,27 @@
-import type { Destination } from "@/content/places";
+import { DESTINATIONS } from "@/content/places";
+
+export interface ArtSubject {
+  slug: string;
+  motif: string;
+  tone: [string, string];
+}
+
+const MOTIF_TONE: Record<string, [string, string]> = {
+  riviera: ["#f4b57f", "#2f6fae"],
+  beach: ["#ffd08a", "#1f7fb6"],
+  island: ["#d9f0ff", "#0f6c8f"],
+  paris: ["#c9b8d9", "#2b2f55"],
+  prag: ["#e9c9a0", "#4a2f3a"],
+  amsterdam: ["#ffd9a8", "#20425e"],
+  kopenhagen: ["#f4e0b8", "#25506b"],
+};
+
+/** Art subject for any trip: tone from the destination list, else from the motif. */
+export function artFor(t: { slug: string; destination: string; motif: string | null }): ArtSubject {
+  const d = DESTINATIONS.find((x) => x.name.toLowerCase() === t.destination.toLowerCase());
+  const motif = t.motif ?? d?.motif ?? "riviera";
+  return { slug: t.slug, motif, tone: d?.tone ?? MOTIF_TONE[motif] ?? ["#f4b57f", "#2f6fae"] };
+}
 
 /**
  * Hand-built SVG illustrations per destination (no stock or AI imagery).
@@ -65,11 +88,11 @@ function Skyline({ seed, color, base, gables = false }: { seed: string; color: s
   return <g>{items}</g>;
 }
 
-export function DestinationArt({ d }: { d: Destination }) {
+export function DestinationArt({ d, className = "dest__art", fit = "xMidYMax slice" }: { d: ArtSubject; className?: string; fit?: string }) {
   const [a, b] = d.tone;
   const dark = "#0d1b24";
   return (
-    <svg className="dest__art" viewBox="0 0 300 400" preserveAspectRatio="xMidYMax slice" aria-hidden="true" focusable="false">
+    <svg className={className} viewBox="0 0 300 400" preserveAspectRatio={fit} aria-hidden="true" focusable="false">
       <defs>
         <radialGradient id={`sun-${d.slug}`}>
           <stop offset="0" stopColor="#fff6dd" stopOpacity="0.95" />

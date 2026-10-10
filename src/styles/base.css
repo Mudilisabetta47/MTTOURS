@@ -279,3 +279,34 @@ fieldset.field {
 [hidden] {
   display: none !important;
 }
+
+/* AI-generated imagery: always labelled */
+.ki {
+  position: absolute;
+  inset: 0;
+}
+.ki img {
+  object-fit: cover;
+}
+.ki__label {
+  position: absolute;
+  z-index: 3;
+  padding: 0.2em 0.6em;
+  border-radius: var(--radius-pill);
+  background: rgb(0 0 0 / 0.45);
+  color: rgb(255 255 255 / 0.85);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  backdrop-filter: blur(6px);
+  pointer-events: none;
+}
+.ki__label--br {
+  inset: auto 1rem 1rem auto;
+}
+.ki__label--bl {
+  inset: auto auto 1rem 1rem;
+}
+.ki__label--tr {
+  inset: 5.5rem 1rem auto auto;
+}

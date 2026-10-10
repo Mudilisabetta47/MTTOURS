@@ -30,7 +30,13 @@ export function SiteFooter() {
             <h2 className="mono-label">Unterwegs</h2>
             <ul>
               <li>
-                <Link href="/reisen">Reisen</Link>
+                <Link href="/pauschalreisen">Pauschalreisen</Link>
+              </li>
+              <li>
+                <Link href="/wochenendtrips">Wochenendtrips</Link>
+              </li>
+              <li>
+                <Link href="/reisen">Alle Reisen</Link>
               </li>
               <li>
                 <Link href="/bus-mieten">Bus mit Fahrer mieten</Link>

@@ -5,6 +5,7 @@ import { COMPANY } from "@/content/company";
 import { DEPARTURE_POINTS } from "@/content/places";
 import { SplitText } from "@/components/site/split-text";
 import { InquiryForm } from "./inquiry-form";
+import { KiImage } from "@/components/site/ki-image";
 
 export const metadata: Metadata = {
   title: { absolute: "Bus mieten mit Fahrer – Hannover, Bremen, Hamburg | METROPOL TOURS" },
@@ -28,7 +29,8 @@ export default async function BusMietenPage({ searchParams }: { searchParams: Pr
 
   return (
     <>
-      <header className="page-hero">
+      <header className="page-hero page-hero--photo">
+        <KiImage src="/media/ki/hero-group-travel.jpg" alt="Fröhliche Reisegruppe im Innenraum eines Reisebusses" priority className="page-hero__photo" />
         <div className="shell">
           <p className="mono-label" style={{ color: "var(--brand)" }}>
             Busvermietung mit Fahrer

@@ -41,51 +41,59 @@ export const InquiryInput = z
 
 export type InquiryData = z.infer<typeof InquiryInput>;
 
+export interface StoreInquiryInput {
+  source: string;
+  tripType: string;
+  payload: Record<string, unknown>;
+  contactName: string;
+  contactEmail: string;
+  contactPhone?: string | null;
+  companyName?: string | null;
+  /** parts that identify "the same request" for double-submit protection */
+  dedupeParts: (string | number)[];
+}
+
 export type CreateInquiryResult =
   | { ok: true; number: string; duplicate: boolean }
   | { ok: false; reason: "rate_limited" };
 
 /**
- * Website inquiry → Inquiry (status NEW). Idempotent: the same request within the same hour
+ * Store a website inquiry (status NEW). Idempotent: the same request within the same hour
  * (double click, reload, retry) returns the existing inquiry instead of creating a second one.
  */
-export async function createWebsiteInquiry(
+export async function storeInquiry(
   db: Db,
-  data: InquiryData,
-  meta: { source: string; ipHash: string | null; now?: Date },
+  input: StoreInquiryInput,
+  meta: { ipHash: string | null; now?: Date },
 ): Promise<CreateInquiryResult> {
   const now = meta.now ?? new Date();
   if (meta.ipHash) {
     const rl = await hitRateLimit(db, `inquiry:ip:${meta.ipHash}`, 5, 10 * 60);
     if (!rl.allowed) return { ok: false, reason: "rate_limited" };
   }
-
   const hourBucket = now.toISOString().slice(0, 13);
-  const dedupeKey = sha256Hex(
-    [data.email, data.datum, data.start.toLowerCase(), data.ziel.toLowerCase(), data.personen, hourBucket].join("|"),
-  );
+  const dedupeKey = sha256Hex([input.source, ...input.dedupeParts, hourBucket].join("|"));
 
   const existing = await db.inquiry.findUnique({ where: { dedupeKey }, select: { number: true } });
   if (existing) return { ok: true, number: existing.number, duplicate: true };
 
-  const tripType = OCCASIONS.find((o) => o.key === data.anlass)?.label ?? "Sonstiges";
   try {
     const number = await db.$transaction(async (tx) => {
       const nr = await nextNumber(tx, "INQUIRY", now.getUTCFullYear());
       const inquiry = await tx.inquiry.create({
         data: {
           number: nr,
-          source: meta.source,
-          tripType,
-          originalPayload: { ...data, submittedAt: now.toISOString() },
-          contactName: data.name,
-          contactEmail: data.email,
-          contactPhone: data.telefon ?? null,
-          companyName: data.firma ?? null,
+          source: input.source,
+          tripType: input.tripType,
+          originalPayload: { ...input.payload, submittedAt: now.toISOString() } as never,
+          contactName: input.contactName,
+          contactEmail: input.contactEmail,
+          contactPhone: input.contactPhone ?? null,
+          companyName: input.companyName ?? null,
           dedupeKey,
         },
       });
-      // Queued for the mail worker (phase 4). Until then new inquiries are visible in the database/admin.
+      // Queued for the mail worker. Until then new inquiries are visible in the database/admin.
       await tx.notification.create({
         data: {
           channel: "EMAIL",
@@ -96,14 +104,35 @@ export async function createWebsiteInquiry(
           relatedId: inquiry.id,
         },
       });
-      await audit(tx, { actorLabel: "website", action: "inquiry.create", entityType: "Inquiry", entityId: inquiry.id, after: { number: nr, source: meta.source }, ipHash: meta.ipHash });
+      await audit(tx, { actorLabel: "website", action: "inquiry.create", entityType: "Inquiry", entityId: inquiry.id, after: { number: nr, source: input.source }, ipHash: meta.ipHash });
       return nr;
     });
     return { ok: true, number, duplicate: false };
   } catch (e) {
-    // Concurrent duplicate submission: the unique dedupeKey decided, return the winner.
     const winner = await db.inquiry.findUnique({ where: { dedupeKey }, select: { number: true } });
     if (winner) return { ok: true, number: winner.number, duplicate: true };
     throw e;
   }
+}
+
+/** Bus rental request from /bus-mieten. */
+export async function createWebsiteInquiry(
+  db: Db,
+  data: InquiryData,
+  meta: { source: string; ipHash: string | null; now?: Date },
+): Promise<CreateInquiryResult> {
+  return storeInquiry(
+    db,
+    {
+      source: meta.source,
+      tripType: OCCASIONS.find((o) => o.key === data.anlass)?.label ?? "Sonstiges",
+      payload: { ...data },
+      contactName: data.name,
+      contactEmail: data.email,
+      contactPhone: data.telefon ?? null,
+      companyName: data.firma ?? null,
+      dedupeParts: [data.email, data.datum, data.start.toLowerCase(), data.ziel.toLowerCase(), data.personen],
+    },
+    meta,
+  );
 }

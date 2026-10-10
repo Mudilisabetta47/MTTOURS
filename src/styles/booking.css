@@ -1,0 +1,237 @@
+/* Booking & status pages */
+.bk-hero {
+  padding-block: 7.5rem 2.5rem;
+}
+.bk-hero h1 {
+  font-size: var(--step-5);
+}
+.bk {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 360px;
+  gap: clamp(2rem, 1rem + 3vw, 4rem);
+  align-items: start;
+}
+.bk__main {
+  display: grid;
+  gap: 1.5rem;
+  min-inline-size: 0;
+}
+.bk__step {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  padding: clamp(1.1rem, 0.8rem + 1vw, 1.6rem);
+  margin: 0;
+  display: grid;
+  gap: 1rem;
+  min-inline-size: 0;
+}
+.bk__step legend {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding-inline: 0.4rem;
+  font-weight: 800;
+  font-size: var(--step-1);
+}
+.bk__step legend span {
+  display: grid;
+  place-items: center;
+  inline-size: 1.8rem;
+  block-size: 1.8rem;
+  border-radius: 50%;
+  background: var(--brand-button);
+  color: #fff;
+  font-size: var(--step--1);
+}
+.bk__fares {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr));
+  gap: 0.75rem;
+}
+.bk__fare,
+.bk__row {
+  position: relative;
+  display: grid;
+  gap: 0.4rem;
+  padding: 1rem;
+  border: 1.5px solid var(--line);
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: border-color var(--dur-sm), background-color var(--dur-sm);
+}
+.bk__fare input,
+.bk__row input {
+  position: absolute;
+  inset: 1rem 1rem auto auto;
+  accent-color: var(--brand-button);
+}
+.bk__fare.is-on,
+.bk__row.is-on {
+  border-color: var(--brand-button);
+  background: color-mix(in oklab, var(--brand) 6%, var(--paper));
+}
+.bk__fare-head {
+  display: grid;
+  gap: 0.15rem;
+}
+.bk__fare-head span {
+  font-weight: 700;
+  font-size: var(--step-1);
+}
+.bk__fare ul {
+  margin: 0;
+  padding-inline-start: 1rem;
+  font-size: var(--step--1);
+  color: var(--fg-muted);
+}
+.bk__list {
+  display: grid;
+  gap: 0.6rem;
+}
+.bk__row {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  padding-inline-end: 3rem;
+}
+.bk__row-main {
+  display: grid;
+}
+.bk__row-main span,
+.bk__row-side {
+  color: var(--fg-muted);
+  font-size: var(--step--1);
+}
+.bk__count {
+  max-inline-size: 260px;
+}
+.bk__pax {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+  padding-block-start: 0.75rem;
+  border-block-start: 1px solid var(--line);
+}
+.bk__pax .mono-label {
+  grid-column: 1 / -1;
+  color: var(--brand-deep);
+}
+.bk__side {
+  position: sticky;
+  inset-block-start: 6rem;
+}
+.bk__summary {
+  display: grid;
+  gap: 0.7rem;
+  padding: 1.5rem;
+  border-radius: var(--radius-xl);
+  background: var(--ink);
+  color: #fff;
+  box-shadow: var(--shadow-panel);
+  --fg-muted: color-mix(in oklab, #fff 65%, transparent);
+}
+.bk__summary .mono-label {
+  color: var(--brand);
+}
+.bk__title {
+  font-size: var(--step-2);
+  line-height: 1.15;
+}
+.bk__date {
+  color: var(--fg-muted);
+  font-size: var(--step--1);
+}
+.bk__lines {
+  list-style: none;
+  margin: 0.4rem 0 0;
+  padding: 0;
+  display: grid;
+  gap: 0.45rem;
+  font-size: var(--step--1);
+}
+.bk__lines li {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.bk__total {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding-block-start: 0.8rem;
+  border-block-start: 1px solid color-mix(in oklab, #fff 18%, transparent);
+}
+.bk__total strong {
+  font-size: var(--step-3);
+}
+.bk__summary .hint {
+  color: var(--fg-muted);
+  font-size: var(--step--2);
+}
+.bk__demo {
+  padding: 0.4rem 0.7rem;
+  border-radius: var(--radius-sm);
+  background: #f2b300;
+  color: #1d1600;
+  font-weight: 700;
+  font-size: var(--step--1);
+}
+@media (max-width: 960px) {
+  .bk {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .bk__side {
+    position: static;
+  }
+}
+@media (max-width: 520px) {
+  .bk__pax {
+    grid-template-columns: 1fr;
+  }
+}
+
+.bk-status {
+  display: grid;
+  gap: 1.2rem;
+  padding-block-start: 8rem;
+}
+.bk-status h1 {
+  font-size: var(--step-5);
+  letter-spacing: var(--track-display);
+}
+.bk-status > p {
+  font-size: var(--step-1);
+  color: var(--fg-muted);
+  max-inline-size: 60ch;
+}
+.tickets {
+  display: grid;
+  gap: 1rem;
+  margin-block-start: 1.5rem;
+}
+.tickets h2 {
+  font-size: var(--step-3);
+}
+.ticket {
+  display: grid;
+  grid-template-columns: 150px minmax(0, 1fr);
+  gap: 1.25rem;
+  align-items: center;
+  padding: 1.1rem;
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--radius-lg);
+}
+.ticket > div:last-child {
+  display: grid;
+  gap: 0.25rem;
+}
+.ticket span {
+  color: var(--fg-muted);
+  font-size: var(--step--1);
+}
+.ticket .mono-label {
+  color: var(--brand-deep);
+}
+.ticket__qr svg {
+  inline-size: 150px;
+  block-size: 150px;
+}

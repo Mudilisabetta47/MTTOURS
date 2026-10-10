@@ -329,11 +329,19 @@ model Trip {
   noindex         Boolean       @default(false)
   /// Package tours may only be published when a valid insolvency certificate is configured.
   insolvencyCertificateRef String?
+  /// Editorial category shown on the site, e.g. "Strandurlaub", "Städtereise".
+  category        String?
+  /// Illustration motif for cards/heroes (see components/home/destination-art.tsx).
+  motif           String?
+  highlights      String[]
+  /// Open editorial points that must be resolved by the office before the content counts as verified.
+  reviewNotes     String[]
   publishedAt     DateTime?
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
 
   media      TripMedia[]
+  pickups    TripPickup[]
   itinerary  TripItineraryDay[]
   inclusions TripInclusion[]
   optionalServices OptionalService[]
@@ -353,6 +361,23 @@ model TripMedia {
   media   MediaAsset @relation(fields: [mediaId], references: [id], onDelete: Cascade)
 
   @@id([tripId, mediaId])
+}
+
+/// Standard boarding points of a trip (template for new departures, shown on the product page).
+model TripPickup {
+  id             String  @id @default(cuid())
+  tripId         String
+  stopId         String
+  /// Local departure time "HH:MM" (Europe/Berlin) on the departure day.
+  localTime      String?
+  /// Meeting point at the stop, e.g. "Steig D".
+  platform       String?
+  surchargeCents Int     @default(0)
+  sort           Int     @default(0)
+  trip           Trip    @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  stop           Stop    @relation(fields: [stopId], references: [id], onDelete: Restrict)
+
+  @@unique([tripId, stopId])
 }
 
 model TripItineraryDay {
@@ -422,6 +447,7 @@ model Stop {
   createdAt   DateTime @default(now())
 
   departureStops DepartureStop[]
+  tripPickups    TripPickup[]
   charterStops   CharterStop[]
 
   @@unique([name, city])
@@ -504,6 +530,7 @@ model DepartureStop {
   sequence          Int
   kind              StopKind        @default(PICKUP)
   plannedAt         DateTime
+  platform          String?
   surchargeCents    Int             @default(0)
   status            StopEventStatus @default(PLANNED)
   actualArrivalAt   DateTime?
