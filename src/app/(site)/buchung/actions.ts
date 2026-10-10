@@ -6,6 +6,7 @@ import { requestMeta } from "@/server/auth/session";
 import { env } from "@/lib/env";
 import { CheckoutError, CheckoutInput, expireOrder, findOrderForGuest, startCheckout } from "@/server/booking/checkout";
 import { createStripeCheckout, PaymentUnavailableError, stripeConfigured } from "@/server/payments/stripe";
+import { deliverTestPaymentEvent, testCheckoutUrl, testPaymentsEnabled } from "@/server/payments/test-provider";
 
 export interface BookingState {
   error?: string;
@@ -13,7 +14,8 @@ export interface BookingState {
 }
 
 export async function startBookingAction(_prev: BookingState, fd: FormData): Promise<BookingState> {
-  if (!stripeConfigured()) return { error: "Die Online-Zahlung ist in dieser Umgebung nicht eingerichtet. Bitte buchen Sie telefonisch." };
+  const testMode = testPaymentsEnabled();
+  if (!stripeConfigured() && !testMode) return { error: "Die Online-Zahlung ist in dieser Umgebung nicht eingerichtet. Bitte buchen Sie telefonisch." };
 
   let raw: unknown;
   try {
@@ -37,6 +39,8 @@ export async function startBookingAction(_prev: BookingState, fd: FormData): Pro
     throw e;
   }
 
+  if (testMode) redirect(testCheckoutUrl(started.orderId, started.accessToken) as never);
+
   let url: string;
   try {
     url = await createStripeCheckout(db, started.orderId, started.accessToken, env().APP_URL);
@@ -57,4 +61,17 @@ export async function retryPaymentAction(fd: FormData): Promise<void> {
   if (!order || order.status !== "PENDING_PAYMENT") redirect(`/buchung/status?o=${encodeURIComponent(orderId)}&t=${encodeURIComponent(token)}` as never);
   const url = await createStripeCheckout(db, order.id, token, env().APP_URL);
   redirect(url as never);
+}
+
+/** Test environment only: simulate the payment provider's answer through the signed webhook. */
+export async function completeTestPaymentAction(fd: FormData): Promise<void> {
+  if (!testPaymentsEnabled()) redirect("/" as never);
+  const orderId = String(fd.get("o") ?? "");
+  const token = String(fd.get("t") ?? "");
+  const outcome = fd.get("outcome") === "paid" ? "paid" : "expired";
+  const order = await findOrderForGuest(db, orderId, token);
+  const back = `/buchung/status?o=${encodeURIComponent(orderId)}&t=${encodeURIComponent(token)}`;
+  if (!order || order.status !== "PENDING_PAYMENT") redirect(back as never);
+  await deliverTestPaymentEvent(order, outcome, env().APP_URL);
+  redirect(`${back}&zahlung=${outcome === "paid" ? "ok" : "abgebrochen"}` as never);
 }

@@ -38,6 +38,9 @@ export function env(): ServerEnv {
   if (parsed.data.APP_ENV === "production" && parsed.data.STRIPE_SECRET_KEY?.startsWith("sk_test_")) {
     throw new Error("Production must not run with a Stripe test key");
   }
+  if (parsed.data.APP_ENV === "production" && process.env.TEST_PAYMENTS) {
+    throw new Error("Production must not run with TEST_PAYMENTS");
+  }
   cached = parsed.data;
   return cached;
 }

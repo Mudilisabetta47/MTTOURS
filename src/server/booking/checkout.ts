@@ -4,7 +4,7 @@ import { audit } from "@/server/audit";
 import { nextNumber } from "@/server/numbering";
 import { randomToken, sha256Hex, safeEqual } from "@/server/auth/tokens";
 import { convertHeldToSold, releaseHeld, reserveCapacity, SoldOutError } from "@/server/inventory/capacity";
-import { quote, PricingError } from "./pricing";
+import { resolveSelection, SelectionError } from "./selection";
 
 /** Stripe requires a Checkout Session to live at least 30 minutes; the hold matches it. */
 export const HOLD_MINUTES = 31;
@@ -57,53 +57,20 @@ export async function startCheckout(db: Db, data: CheckoutData, meta: { ipHash: 
   const now = meta.now ?? new Date();
   await expireStaleHolds(db, now);
 
-  const dep = await db.tripDeparture.findUnique({
-    where: { code: data.departureCode },
-    include: {
-      trip: { select: { id: true, status: true, productType: true, title: true, insolvencyCertificateRef: true } },
-      fares: { where: { code: data.fareCode, isActive: true } },
-      stops: { where: { id: data.boardingStopId }, include: { stop: true } },
-    },
-  });
-  if (!dep || dep.trip.status !== "PUBLISHED") throw new CheckoutError("Diese Reise ist nicht verfügbar.", "not_found");
-  if (dep.status !== "ON_SALE" || dep.departAt <= now || (dep.bookingDeadline && dep.bookingDeadline <= now)) {
-    throw new CheckoutError("Für diesen Termin ist keine Buchung mehr möglich.", "not_on_sale");
+  let resolved;
+  try {
+    resolved = await resolveSelection(
+      db,
+      { departureCode: data.departureCode, fareCode: data.fareCode, boardingStopId: data.boardingStopId, passengers: data.passengers.length, options: data.options },
+      now,
+    );
+  } catch (e) {
+    if (e instanceof SelectionError) throw new CheckoutError(e.message, e.code);
+    throw e;
   }
-  const fare = dep.fares[0];
-  const stop = dep.stops[0];
-  if (!fare || fare.priceCents <= 0) throw new CheckoutError("Bitte einen gültigen Tarif wählen.", "invalid");
-  if (!stop || stop.kind === "DROPOFF" || stop.kind === "WAYPOINT") throw new CheckoutError("Bitte einen gültigen Zustieg wählen.", "invalid");
-  // A package tour must not be sold without insolvency protection (§ 651r BGB).
-  if (dep.trip.productType === "PACKAGE_TOUR" && !dep.trip.insolvencyCertificateRef) {
-    throw new CheckoutError("Diese Reise ist noch nicht online buchbar.", "not_on_sale");
-  }
+  const { dep, fare, stop, price } = resolved;
   if (dep.trip.productType === "PACKAGE_TOUR" && !data.consents.packageInfo) {
     throw new CheckoutError("Bitte bestätigen Sie den Erhalt des Formblatts zur Pauschalreise.", "package_info_missing");
-  }
-
-  const wanted = data.options.filter((o) => o.quantity > 0);
-  const services = wanted.length
-    ? await db.optionalService.findMany({ where: { id: { in: wanted.map((o) => o.id) }, tripId: dep.trip.id, isActive: true } })
-    : [];
-  if (services.length !== wanted.length) throw new CheckoutError("Eine Zusatzleistung ist nicht verfügbar.", "invalid");
-
-  let price;
-  try {
-    price = quote({
-      passengers: data.passengers.length,
-      fare: { id: fare.id, name: fare.name, priceCents: fare.priceCents },
-      boardingStop: { id: stop.id, name: stop.stop.name, surchargeCents: stop.surchargeCents },
-      options: services.map((s) => ({
-        id: s.id,
-        name: s.name,
-        priceCents: s.priceCents,
-        unit: s.unit,
-        quantity: Math.min(wanted.find((w) => w.id === s.id)!.quantity, s.maxPerBooking ?? 20),
-      })),
-    });
-  } catch (e) {
-    if (e instanceof PricingError) throw new CheckoutError(e.message, "invalid");
-    throw e;
   }
 
   const accessToken = randomToken(32);

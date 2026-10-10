@@ -87,6 +87,31 @@ export async function listPublishedTrips(db: Db, opts: { productType?: ProductTy
     .sort((a, b) => (a.next ? 0 : 1) - (b.next ? 0 : 1) || (a.next && b.next ? a.next.departAt.getTime() - b.next.departAt.getTime() : 0));
 }
 
+/**
+ * Booking state of a trip page, derived from the database on every request:
+ * - BOOKABLE     at least one departure can be bought online right now
+ * - SOLD_OUT     departures are on sale but no seat is left
+ * - CANCELLED    all upcoming departures were cancelled
+ * - COMING_SOON  nothing on sale yet (or online sale is locked) – interest list instead of checkout
+ * Unpublished trips (DRAFT/REVIEW/ARCHIVED) never reach the public page.
+ */
+export type TripState = "BOOKABLE" | "SOLD_OUT" | "CANCELLED" | "COMING_SOON";
+
+export interface TripMediaItem {
+  src: string;
+  alt: string;
+  width: number;
+  height: number;
+  rightsConfirmed: boolean;
+  isAiGenerated: boolean;
+}
+
+export interface TripDeparture extends PublicDeparture {
+  state: "BOOKABLE" | "SOLD_OUT";
+  /** lowest price a single traveller can actually pay for this date (cheapest fare + cheapest boarding point) */
+  fromPriceCents: number;
+}
+
 export interface TripDetail {
   id: string;
   slug: string;
@@ -97,10 +122,12 @@ export interface TripDetail {
   category: string | null;
   motif: string | null;
   durationDays: number;
+  durationNights: number;
   summary: string;
   description: ContentBlock[];
   highlights: string[];
   hotelName: string | null;
+  hotelStars: number | null;
   hotelAddress: string | null;
   seoTitle: string | null;
   seoDescription: string | null;
@@ -108,9 +135,18 @@ export interface TripDetail {
   excluded: string[];
   itinerary: { dayNumber: number; title: string; body: string }[];
   pickups: { city: string; name: string; street: string | null; postalCode: string | null; localTime: string | null; platform: string | null; surchargeCents: number }[];
-  optionalServices: { id: string; name: string; description: string | null; priceCents: number; unit: "PER_PERSON" | "PER_BOOKING" }[];
-  departures: PublicDeparture[];
+  optionalServices: { id: string; name: string; description: string | null; priceCents: number; unit: "PER_PERSON" | "PER_BOOKING"; max: number }[];
+  media: TripMediaItem[];
+  state: TripState;
+  /** set when departures exist but online sale is not allowed yet */
+  lockReason: "package_unprotected" | null;
+  departures: TripDeparture[];
+  fromPriceCents: number | null;
+  insolvencyProtected: boolean;
 }
+
+/** Media without confirmed rights are only shown outside production. */
+const showUnconfirmedMedia = () => process.env.APP_ENV !== "production";
 
 export async function getPublishedTrip(db: Db, slug: string, now = new Date()): Promise<TripDetail | null> {
   const t = await db.trip.findFirst({
@@ -120,17 +156,61 @@ export async function getPublishedTrip(db: Db, slug: string, now = new Date()): 
       itinerary: { orderBy: { dayNumber: "asc" } },
       pickups: { orderBy: { sort: "asc" }, include: { stop: true } },
       optionalServices: { where: { isActive: true }, orderBy: { sort: "asc" } },
+      media: { orderBy: [{ role: "desc" }, { sort: "asc" }], include: { media: { include: { file: { select: { key: true, bucket: true, visibility: true } } } } } },
       departures: {
-        where: onSaleWhere(now),
+        where: { departAt: { gt: now }, status: { in: ["ON_SALE", "CANCELLED"] } },
         orderBy: { departAt: "asc" },
         include: {
           fares: { where: { isActive: true, priceCents: { gt: 0 } }, orderBy: { sort: "asc" } },
-          stops: { orderBy: { sequence: "asc" }, include: { stop: true } },
+          stops: { where: { kind: { in: ["PICKUP", "PICKUP_DROPOFF"] } }, orderBy: { sequence: "asc" }, include: { stop: true } },
         },
       },
     },
   });
   if (!t) return null;
+
+  const locked = t.productType === "PACKAGE_TOUR" && !t.insolvencyCertificateRef;
+  const open = t.departures.filter(
+    (d) => d.status === "ON_SALE" && (!d.bookingDeadline || d.bookingDeadline > now) && d.fares.length > 0 && d.stops.length > 0,
+  );
+  const departures: TripDeparture[] = open.map((d) => {
+    const seatsLeft = Math.max(0, d.capacity - d.soldCount - d.heldCount);
+    return {
+      id: d.id,
+      code: d.code,
+      departAt: d.departAt,
+      returnAt: d.returnAt,
+      seatsLeft,
+      bookingDeadline: d.bookingDeadline,
+      state: seatsLeft > 0 ? "BOOKABLE" : "SOLD_OUT",
+      fromPriceCents: Math.min(...d.fares.map((f) => f.priceCents)) + Math.min(...d.stops.map((s) => s.surchargeCents)),
+      fares: d.fares.map((f) => ({ id: f.id, code: f.code, name: f.name, priceCents: f.priceCents, conditions: (f.conditions ?? {}) as FareConditions })),
+      stops: d.stops.map((s) => ({ id: s.id, name: s.stop.name, city: s.stop.city, plannedAt: s.plannedAt, platform: s.platform, surchargeCents: s.surchargeCents })),
+    };
+  });
+  const sellable = departures.filter((d) => d.state === "BOOKABLE");
+  const state: TripState = locked
+    ? "COMING_SOON"
+    : sellable.length
+      ? "BOOKABLE"
+      : departures.length
+        ? "SOLD_OUT"
+        : t.departures.length && t.departures.every((d) => d.status === "CANCELLED")
+          ? "CANCELLED"
+          : "COMING_SOON";
+
+  const media = t.media
+    .filter((m) => m.media.file.bucket === "public" && m.media.file.visibility === "PUBLIC")
+    .filter((m) => m.media.rightsConfirmed || showUnconfirmedMedia())
+    .map((m) => ({
+      src: `/media/${m.media.file.key}`,
+      alt: m.media.alt,
+      width: m.media.width,
+      height: m.media.height,
+      rightsConfirmed: m.media.rightsConfirmed,
+      isAiGenerated: m.media.isAiGenerated,
+    }));
+
   return {
     id: t.id,
     slug: t.slug,
@@ -141,10 +221,12 @@ export async function getPublishedTrip(db: Db, slug: string, now = new Date()): 
     category: t.category,
     motif: t.motif,
     durationDays: t.durationDays,
+    durationNights: t.durationNights,
     summary: t.summary,
     description: parseBlocks(t.description),
     highlights: t.highlights,
     hotelName: t.hotelName,
+    hotelStars: t.hotelStars,
     hotelAddress: t.hotelAddress,
     seoTitle: t.seoTitle,
     seoDescription: t.seoDescription,
@@ -160,19 +242,20 @@ export async function getPublishedTrip(db: Db, slug: string, now = new Date()): 
       platform: p.platform,
       surchargeCents: p.surchargeCents,
     })),
-    optionalServices: t.optionalServices.map((o) => ({ id: o.id, name: o.name, description: o.description, priceCents: o.priceCents, unit: o.unit })),
-    departures: t.departures
-      .map((d) => ({
-        id: d.id,
-        code: d.code,
-        departAt: d.departAt,
-        returnAt: d.returnAt,
-        seatsLeft: d.capacity - d.soldCount - d.heldCount,
-        bookingDeadline: d.bookingDeadline,
-        fares: d.fares.map((f) => ({ id: f.id, code: f.code, name: f.name, priceCents: f.priceCents, conditions: (f.conditions ?? {}) as FareConditions })),
-        stops: d.stops.map((s) => ({ id: s.id, name: s.stop.name, city: s.stop.city, plannedAt: s.plannedAt, platform: s.platform, surchargeCents: s.surchargeCents })),
-      }))
-      .filter((d) => d.seatsLeft > 0 && d.fares.length > 0),
+    optionalServices: t.optionalServices.map((o) => ({
+      id: o.id,
+      name: o.name,
+      description: o.description,
+      priceCents: o.priceCents,
+      unit: o.unit,
+      max: o.maxPerBooking ?? 20,
+    })),
+    media,
+    state,
+    lockReason: locked && departures.length ? "package_unprotected" : null,
+    departures: locked ? [] : departures,
+    fromPriceCents: !locked && sellable.length ? Math.min(...sellable.map((d) => d.fromPriceCents)) : null,
+    insolvencyProtected: t.productType === "PACKAGE_TOUR" && !!t.insolvencyCertificateRef,
   };
 }
 

@@ -1,11 +1,12 @@
 "use client";
 
-import { useActionState, useMemo, useState } from "react";
+import { useActionState, useEffect, useState } from "react";
+import Link from "next/link";
 import type { BookableDeparture } from "@/server/booking/departure";
-import { quote } from "@/server/booking/pricing";
 import { formatEur } from "@/lib/money";
 import { LEGAL_LINKS } from "@/content/company";
 import { startBookingAction, type BookingState } from "../actions";
+import { quoteAction, type QuoteResult } from "../quote-action";
 
 const tz = "Europe/Berlin";
 const dateFmt = new Intl.DateTimeFormat("de-DE", { timeZone: tz, weekday: "long", day: "2-digit", month: "long", year: "numeric" });
@@ -16,43 +17,51 @@ interface Pax {
   lastName: string;
 }
 
-export function BookingForm({ d, initialFare, paymentReady }: { d: BookableDeparture; initialFare?: string; paymentReady: boolean }) {
+export interface BookingPrefill {
+  fare?: string;
+  stop?: string;
+  pax?: number;
+  extras?: string[];
+}
+
+export function BookingForm({ d, prefill, paymentReady, tripPath }: { d: BookableDeparture; prefill: BookingPrefill; paymentReady: boolean; tripPath: string }) {
   const [state, action, pending] = useActionState<BookingState, FormData>(startBookingAction, {});
-  const [fareCode, setFareCode] = useState(d.fares.some((f) => f.code === initialFare) ? initialFare! : d.fares.find((f) => f.conditions.recommended)?.code ?? d.fares[0]!.code);
-  const [stopId, setStopId] = useState(d.stops[0]!.id);
+  const [fareCode, setFareCode] = useState(
+    d.fares.some((f) => f.code === prefill.fare) ? prefill.fare! : (d.fares.find((f) => f.conditions.recommended)?.code ?? d.fares[0]!.code),
+  );
+  const [stopId, setStopId] = useState(d.stops.some((s) => s.id === prefill.stop) ? prefill.stop! : d.stops[0]!.id);
   const maxPax = Math.min(d.seatsLeft, 10);
-  const [pax, setPax] = useState<Pax[]>([{ firstName: "", lastName: "" }]);
-  const [opts, setOpts] = useState<Record<string, number>>({});
+  const [pax, setPax] = useState<Pax[]>(() => Array.from({ length: Math.min(Math.max(1, prefill.pax ?? 1), maxPax) }, () => ({ firstName: "", lastName: "" })));
+  const [extras, setExtras] = useState<Record<string, boolean>>(() => Object.fromEntries((prefill.extras ?? []).filter((id) => d.options.some((o) => o.id === id)).map((id) => [id, true])));
   const [contact, setContact] = useState({ firstName: "", lastName: "", email: "", phone: "" });
   const [consents, setConsents] = useState({ terms: false, privacy: false, packageInfo: false });
+  const [quote, setQuote] = useState<QuoteResult | null>(null);
   const isPackage = d.trip.productType === "PACKAGE_TOUR";
   const fe = state.fieldErrors ?? {};
 
-  const fare = d.fares.find((f) => f.code === fareCode)!;
   const stop = d.stops.find((s) => s.id === stopId)!;
-  const price = useMemo(
-    () =>
-      quote({
-        passengers: pax.length,
-        fare: { id: fare.code, name: fare.name, priceCents: fare.priceCents },
-        boardingStop: { id: stop.id, name: stop.name, surchargeCents: stop.surchargeCents },
-        options: d.options.map((o) => ({ id: o.id, name: o.name, priceCents: o.priceCents, unit: o.unit, quantity: opts[o.id] ?? 0 })),
-      }),
-    [pax.length, fare, stop, opts, d.options],
-  );
+  const options = d.options.filter((o) => extras[o.id]).map((o) => ({ id: o.id, quantity: o.unit === "PER_PERSON" ? pax.length : 1 }));
+  const selection = { departureCode: d.code, fareCode, boardingStopId: stopId, passengers: pax.length, options };
+  const key = JSON.stringify(selection);
+
+  // The price shown is always the one the server calculated for exactly this selection.
+  useEffect(() => {
+    let alive = true;
+    quoteAction({ ...JSON.parse(key), key }).then(
+      (r) => alive && setQuote(r),
+      () => alive && setQuote({ ok: false, key, error: "Der Preis konnte gerade nicht berechnet werden.", code: "invalid" }),
+    );
+    return () => {
+      alive = false;
+    };
+  }, [key]);
+  const quotePending = !quote || quote.key !== key;
+  const confirmed = quote?.ok && !quotePending ? quote : null;
 
   const setCount = (n: number) =>
     setPax((p) => (n > p.length ? [...p, ...Array.from({ length: n - p.length }, () => ({ firstName: "", lastName: "" }))] : p.slice(0, n)));
 
-  const payload = JSON.stringify({
-    departureCode: d.code,
-    fareCode,
-    boardingStopId: stopId,
-    passengers: pax,
-    options: Object.entries(opts).map(([id, quantity]) => ({ id, quantity })),
-    contact,
-    consents,
-  });
+  const payload = JSON.stringify({ ...selection, passengers: pax, contact, consents });
 
   return (
     <form action={action} className="bk">
@@ -66,61 +75,66 @@ export function BookingForm({ d, initialFare, paymentReady }: { d: BookableDepar
 
         <fieldset className="bk__step">
           <legend>
-            <span>1</span> Tarif
+            <span>1</span> Ihre Auswahl
           </legend>
-          <div className="bk__fares" role="radiogroup">
-            {d.fares.map((f) => (
-              <label key={f.code} className={f.code === fareCode ? "bk__fare is-on" : "bk__fare"}>
-                <input type="radio" name="fare" value={f.code} checked={f.code === fareCode} onChange={() => setFareCode(f.code)} />
-                <span className="bk__fare-head">
-                  <strong>{f.name}</strong>
-                  <span>{formatEur(f.priceCents)} p. P.</span>
-                </span>
-                <ul>
-                  {(f.conditions.features ?? []).map((x) => (
-                    <li key={x}>{x}</li>
-                  ))}
-                </ul>
-              </label>
-            ))}
+          <div className="bk__sel">
+            <div className="field">
+              <label htmlFor="bk-fare">Tarif</label>
+              <select id="bk-fare" value={fareCode} onChange={(e) => setFareCode(e.target.value)}>
+                {d.fares.map((f) => (
+                  <option key={f.code} value={f.code}>
+                    {f.name} – {formatEur(f.priceCents)} p. P.
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="field">
+              <label htmlFor="bk-stop">Zustieg</label>
+              <select id="bk-stop" value={stopId} onChange={(e) => setStopId(e.target.value)}>
+                {d.stops.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.name}, {timeFmt.format(new Date(s.plannedAt))} Uhr{s.surchargeCents ? ` (+ ${formatEur(s.surchargeCents)} p. P.)` : ""}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="field">
+              <label htmlFor="bk-count">Reisende</label>
+              <select id="bk-count" value={pax.length} onChange={(e) => setCount(Number(e.target.value))}>
+                {Array.from({ length: maxPax }, (_, i) => (
+                  <option key={i + 1} value={i + 1}>
+                    {i + 1} {i === 0 ? "Person" : "Personen"}
+                  </option>
+                ))}
+              </select>
+              {d.seatsLeft <= 10 ? <span className="hint">Noch {d.seatsLeft} Plätze frei</span> : null}
+            </div>
           </div>
-        </fieldset>
-
-        <fieldset className="bk__step">
-          <legend>
-            <span>2</span> Zustieg
-          </legend>
-          <div className="bk__list">
-            {d.stops.map((s) => (
-              <label key={s.id} className={s.id === stopId ? "bk__row is-on" : "bk__row"}>
-                <input type="radio" name="stop" value={s.id} checked={s.id === stopId} onChange={() => setStopId(s.id)} />
-                <span className="bk__row-main">
-                  <strong>{s.name}</strong>
-                  <span>
-                    {timeFmt.format(new Date(s.plannedAt))} Uhr{s.platform ? ` · ${s.platform}` : ""}
+          {d.options.length ? (
+            <div className="bk__list">
+              {d.options.map((o) => (
+                <label key={o.id} className={extras[o.id] ? "bk__row is-on" : "bk__row"}>
+                  <input type="checkbox" checked={!!extras[o.id]} onChange={(e) => setExtras((x) => ({ ...x, [o.id]: e.target.checked }))} />
+                  <span className="bk__row-main">
+                    <strong>{o.name}</strong>
+                    {o.description ? <span>{o.description}</span> : null}
                   </span>
-                </span>
-                <span className="bk__row-side">{s.surchargeCents ? `+ ${formatEur(s.surchargeCents)} p. P.` : "ohne Aufpreis"}</span>
-              </label>
-            ))}
-          </div>
+                  <span className="bk__row-side">
+                    {formatEur(o.priceCents)} {o.unit === "PER_PERSON" ? "p. P." : "pro Buchung"}
+                  </span>
+                </label>
+              ))}
+            </div>
+          ) : null}
+          <Link className="bk__back" href={`${tripPath}#termine` as never}>
+            Anderen Termin wählen
+          </Link>
         </fieldset>
 
         <fieldset className="bk__step">
           <legend>
-            <span>3</span> Reisende
+            <span>2</span> Reisende
           </legend>
-          <div className="field bk__count">
-            <label htmlFor="bk-count">Anzahl Reisende</label>
-            <select id="bk-count" value={pax.length} onChange={(e) => setCount(Number(e.target.value))}>
-              {Array.from({ length: maxPax }, (_, i) => (
-                <option key={i + 1} value={i + 1}>
-                  {i + 1} {i === 0 ? "Person" : "Personen"}
-                </option>
-              ))}
-            </select>
-            {d.seatsLeft <= 10 ? <span className="hint">Noch {d.seatsLeft} Plätze frei</span> : null}
-          </div>
           {pax.map((p, i) => (
             <div key={i} className="bk__pax">
               <span className="mono-label">Reisende/r {i + 1}</span>
@@ -130,6 +144,7 @@ export function BookingForm({ d, initialFare, paymentReady }: { d: BookableDepar
                   id={`p${i}f`}
                   required
                   maxLength={80}
+                  autoComplete={i === 0 ? "given-name" : "off"}
                   value={p.firstName}
                   aria-invalid={fe[`passengers.${i}.firstName`] ? true : undefined}
                   onChange={(e) => setPax((all) => all.map((x, j) => (j === i ? { ...x, firstName: e.target.value } : x)))}
@@ -141,6 +156,7 @@ export function BookingForm({ d, initialFare, paymentReady }: { d: BookableDepar
                   id={`p${i}l`}
                   required
                   maxLength={80}
+                  autoComplete={i === 0 ? "family-name" : "off"}
                   value={p.lastName}
                   aria-invalid={fe[`passengers.${i}.lastName`] ? true : undefined}
                   onChange={(e) => setPax((all) => all.map((x, j) => (j === i ? { ...x, lastName: e.target.value } : x)))}
@@ -148,37 +164,12 @@ export function BookingForm({ d, initialFare, paymentReady }: { d: BookableDepar
               </div>
             </div>
           ))}
+          <p className="hint">Bitte die Namen wie im Ausweis angeben.</p>
         </fieldset>
-
-        {d.options.length ? (
-          <fieldset className="bk__step">
-            <legend>
-              <span>4</span> Zusatzleistungen
-            </legend>
-            <div className="bk__list">
-              {d.options.map((o) => (
-                <label key={o.id} className={(opts[o.id] ?? 0) > 0 ? "bk__row is-on" : "bk__row"}>
-                  <input
-                    type="checkbox"
-                    checked={(opts[o.id] ?? 0) > 0}
-                    onChange={(e) => setOpts((x) => ({ ...x, [o.id]: e.target.checked ? (o.unit === "PER_PERSON" ? pax.length : 1) : 0 }))}
-                  />
-                  <span className="bk__row-main">
-                    <strong>{o.name}</strong>
-                    {o.description ? <span>{o.description}</span> : null}
-                  </span>
-                  <span className="bk__row-side">
-                    {formatEur(o.priceCents)} {o.unit === "PER_PERSON" ? "p. P." : "pro Buchung"}
-                  </span>
-                </label>
-              ))}
-            </div>
-          </fieldset>
-        ) : null}
 
         <fieldset className="bk__step">
           <legend>
-            <span>{d.options.length ? 5 : 4}</span> Kontakt
+            <span>3</span> Kontakt
           </legend>
           <div className="inq__grid">
             {(
@@ -210,7 +201,7 @@ export function BookingForm({ d, initialFare, paymentReady }: { d: BookableDepar
 
         <fieldset className="bk__step">
           <legend>
-            <span>{d.options.length ? 6 : 5}</span> Bestätigen
+            <span>4</span> Bestätigen
           </legend>
           <label className="choice">
             <input type="checkbox" checked={consents.terms} onChange={(e) => setConsents((c) => ({ ...c, terms: e.target.checked }))} />
@@ -244,26 +235,35 @@ export function BookingForm({ d, initialFare, paymentReady }: { d: BookableDepar
             <br />
             Abfahrt {stop.city} {timeFmt.format(new Date(stop.plannedAt))} Uhr
           </span>
-          <ul className="bk__lines">
-            {price.lines.map((l) => (
-              <li key={l.kind + l.referenceId}>
-                <span>
-                  {l.quantity} × {l.description}
-                </span>
-                <span className="tabular">{formatEur(l.totalCents)}</span>
-              </li>
-            ))}
-          </ul>
-          <p className="bk__total">
-            <span>Gesamt</span>
-            <strong className="tabular">{formatEur(price.totalCents)}</strong>
-          </p>
-          <p className="hint">inkl. gesetzlicher Steuern, sofern anfallend</p>
-          <button className="btn btn--brand btn--lg btn--arrow" type="submit" disabled={pending || !paymentReady}>
+          <div aria-live="polite" data-pending={quotePending ? "true" : "false"} className="bk__price">
+            {quote?.ok ? (
+              <ul className="bk__lines">
+                {quote.lines.map((l) => (
+                  <li key={l.kind + l.description}>
+                    <span>
+                      {l.quantity} × {l.description}
+                    </span>
+                    <span className="tabular">{formatEur(l.totalCents)}</span>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+            <p className="bk__total">
+              <span>Gesamt</span>
+              <strong className="tabular">{quote?.ok ? formatEur(quote.totalCents) : "–"}</strong>
+            </p>
+            {quote && !quote.ok && !quotePending ? (
+              <p className="alert alert--danger" role="alert">
+                {quote.error}
+              </p>
+            ) : null}
+          </div>
+          <p className="hint">{quotePending ? "Preis wird geprüft …" : "Vom System berechnet, inkl. gesetzlicher Steuern, sofern anfallend."}</p>
+          <button className="btn btn--brand btn--lg btn--arrow" type="submit" disabled={pending || !paymentReady || !confirmed}>
             {pending ? "Plätze werden reserviert …" : "Zahlungspflichtig buchen"}
           </button>
           {paymentReady ? (
-            <p className="hint">Weiter zur sicheren Zahlung bei Stripe. Ihre Plätze sind währenddessen 30 Minuten reserviert.</p>
+            <p className="hint">Weiter zur sicheren Zahlung. Ihre Plätze sind währenddessen 30 Minuten reserviert.</p>
           ) : (
             <p className="alert alert--warn">Online-Zahlung ist in dieser Umgebung noch nicht eingerichtet (Stripe-Schlüssel fehlen).</p>
           )}

@@ -104,6 +104,9 @@ function Panel({ item, visual, onNavigate }: { item: NavItem; visual: ReactNode;
   );
 }
 
+/** Pages that start on a light background get the light-glass header right away (no white-on-white). */
+const LIGHT_PAGES = /^\/(reisen|wochenendtrips|pauschalreisen)\/[^/]+$|^\/buchung(\/|$)/;
+
 export function SiteHeader({ nav, visuals }: { nav: Navigation; visuals: Record<string, ReactNode> }) {
   const pathname = usePathname();
   const [scrolled, setScrolled] = useState(false);
@@ -202,7 +205,7 @@ export function SiteHeader({ nav, visuals }: { nav: Navigation; visuals: Record<
     timer.current = window.setTimeout(() => setOpen(null), CLOSE_DELAY);
   };
 
-  const state = open ? "open" : scrolled || mobileOpen ? "scrolled" : "top";
+  const state = open ? "open" : scrolled || mobileOpen || LIGHT_PAGES.test(pathname) ? "scrolled" : "top";
   const lightLogo = state === "top";
 
   return (

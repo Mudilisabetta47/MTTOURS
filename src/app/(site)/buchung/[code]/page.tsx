@@ -3,6 +3,7 @@ import Link from "next/link";
 import { db } from "@/server/db/client";
 import { getBookableDeparture } from "@/server/booking/departure";
 import { stripeConfigured } from "@/server/payments/stripe";
+import { testPaymentsEnabled } from "@/server/payments/test-provider";
 import { COMPANY } from "@/content/company";
 import { BookingForm } from "./booking-form";
 import "@/styles/booking.css";
@@ -17,15 +18,21 @@ const REASON: Record<string, string> = {
   package_locked: "Diese Pauschalreise ist noch nicht online buchbar. Wir beraten Sie gern telefonisch.",
 };
 
-export default async function BookingPage({ params, searchParams }: { params: Promise<{ code: string }>; searchParams: Promise<{ tarif?: string }> }) {
+export default async function BookingPage({ params, searchParams }: { params: Promise<{ code: string }>; searchParams: Promise<{ tarif?: string; zustieg?: string; personen?: string; extras?: string }> }) {
   const { code } = await params;
-  const { tarif } = await searchParams;
+  const sp = await searchParams;
+  const prefill = {
+    fare: sp.tarif?.slice(0, 40),
+    stop: sp.zustieg?.slice(0, 64),
+    pax: Math.min(10, Math.max(1, Number.parseInt(sp.personen ?? "1", 10) || 1)),
+    extras: (sp.extras ?? "").split(",").map((x) => x.split(":")[0]!.slice(0, 64)).filter(Boolean).slice(0, 20),
+  };
   const state = await getBookableDeparture(db, code.slice(0, 80));
   const tel = COMPANY.phone.replace(/\s/g, "");
 
   return (
     <>
-      <header className="page-hero bk-hero">
+      <header className="bk-hero">
         <div className="shell">
           <p className="mono-label" style={{ color: "var(--brand)" }}>
             Buchung
@@ -35,7 +42,12 @@ export default async function BookingPage({ params, searchParams }: { params: Pr
       </header>
       <section className="sec shell" style={{ paddingBlockStart: "2.5rem" }}>
         {state.ok ? (
-          <BookingForm d={state.d} initialFare={tarif?.slice(0, 40)} paymentReady={stripeConfigured()} />
+          <BookingForm
+            d={state.d}
+            prefill={prefill}
+            paymentReady={stripeConfigured() || testPaymentsEnabled()}
+            tripPath={state.d.trip.productType === "TRANSPORT_ONLY" ? `/wochenendtrips/${state.d.trip.slug}` : `/reisen/${state.d.trip.slug}`}
+          />
         ) : (
           <div className="trips__empty on-dark">
             <div style={{ display: "grid", gap: "0.8rem" }}>

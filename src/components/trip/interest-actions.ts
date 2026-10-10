@@ -18,7 +18,7 @@ export async function submitTripInterest(_prev: InterestState, fd: FormData): Pr
 
   const get = (k: string) => (typeof fd.get(k) === "string" ? (fd.get(k) as string) : undefined);
   const values: Record<string, string> = {};
-  for (const k of ["name", "email", "telefon", "personen", "zeitraum", "nachricht"]) values[k] = (get(k) ?? "").slice(0, 1500);
+  for (const k of ["name", "email", "telefon", "personen", "zeitraum", "zustieg", "nachricht"]) values[k] = (get(k) ?? "").slice(0, 1500);
   values.datenschutz = fd.get("datenschutz") === "on" ? "on" : "";
 
   const parsed = TripInterestInput.safeParse({ ...values, tripSlug: get("tripSlug"), datenschutz: fd.get("datenschutz") === "on" });

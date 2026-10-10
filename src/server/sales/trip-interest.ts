@@ -16,6 +16,7 @@ export const TripInterestInput = z.object({
     .refine((v) => !v || /^[+0-9 ()/-]{6,40}$/.test(v), "Bitte eine gültige Telefonnummer angeben."),
   personen: z.coerce.number().int().min(1, "Mindestens 1 Person.").max(200),
   zeitraum: z.string().trim().max(120).optional().transform((v) => v || undefined),
+  zustieg: z.string().trim().max(80).optional().transform((v) => v || undefined),
   nachricht: z.string().trim().max(1500).optional().transform((v) => v || undefined),
   datenschutz: z.literal(true, { message: "Bitte der Verarbeitung Ihrer Angaben zustimmen." }),
 });
