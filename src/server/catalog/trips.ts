@@ -35,7 +35,21 @@ export interface TripSummary {
   durationDays: number;
   summary: string;
   boardingCities: string[];
-  next: { departAt: Date; fromPriceCents: number; seatsLeft: number; count: number } | null;
+  durationNights: number;
+  hotelName: string | null;
+  /** first included services (only what the office entered) */
+  included: string[];
+  /** standard pickup times from the trip template, "HH:MM" local; per departure the real times apply */
+  pickupTimes: { city: string; name: string; localTime: string | null }[];
+  next: {
+    departAt: Date;
+    returnAt: Date | null;
+    /** real boarding times of the next bookable departure, in route order */
+    stops: { city: string; name: string; at: Date; surchargeCents: number }[];
+    fromPriceCents: number;
+    seatsLeft: number;
+    count: number;
+  } | null;
   /** same derivation as the trip page (BOOKABLE only when it can really be bought online) */
   state: "BOOKABLE" | "SOLD_OUT" | "COMING_SOON";
   cover: { src: string; alt: string; width: number; height: number; rightsConfirmed: boolean } | null;
@@ -56,13 +70,18 @@ export async function listPublishedTrips(db: Db, opts: { productType?: ProductTy
   const trips = await db.trip.findMany({
     where: { status: "PUBLISHED", ...(opts.productType ? { productType: opts.productType } : {}) },
     include: {
-      pickups: { orderBy: { sort: "asc" }, include: { stop: { select: { city: true } } } },
+      pickups: { orderBy: { sort: "asc" }, include: { stop: { select: { city: true, name: true } } } },
+      inclusions: { where: { kind: "INCLUDED" }, orderBy: { sort: "asc" }, take: 4, select: { text: true } },
       departures: {
         where: onSaleWhere(now),
         orderBy: { departAt: "asc" },
         include: {
           fares: { where: { isActive: true, priceCents: { gt: 0 } }, select: { priceCents: true } },
-          stops: { where: { kind: { in: ["PICKUP", "PICKUP_DROPOFF"] } }, select: { surchargeCents: true } },
+          stops: {
+            where: { kind: { in: ["PICKUP", "PICKUP_DROPOFF"] } },
+            orderBy: { sequence: "asc" },
+            select: { surchargeCents: true, plannedAt: true, stop: { select: { city: true, name: true } } },
+          },
         },
       },
       media: {
@@ -93,9 +112,15 @@ export async function listPublishedTrips(db: Db, opts: { productType?: ProductTy
         durationDays: t.durationDays,
         summary: t.summary,
         boardingCities: t.pickups.map((p) => p.stop.city),
+        durationNights: t.durationNights,
+        hotelName: t.hotelName,
+        included: t.inclusions.map((i) => i.text),
+        pickupTimes: t.pickups.map((p) => ({ city: p.stop.city, name: p.stop.name, localTime: p.localTime })),
         next: first
           ? {
               departAt: first.departAt,
+              returnAt: first.returnAt,
+              stops: first.stops.map((x) => ({ city: x.stop.city, name: x.stop.name, at: x.plannedAt, surchargeCents: x.surchargeCents })),
               // cheapest fare + cheapest boarding point: a price one traveller can actually pay
               fromPriceCents: Math.min(...sellable.map((d) => Math.min(...d.fares.map((f) => f.priceCents)) + Math.min(...d.stops.map((x) => x.surchargeCents)))),
               seatsLeft: first.capacity - first.soldCount - first.heldCount,

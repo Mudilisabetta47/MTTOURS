@@ -4,7 +4,7 @@ import { db } from "@/server/db/client";
 import { listPublishedTrips } from "@/server/catalog/trips";
 import { DEPARTURE_POINTS, DESTINATIONS } from "@/content/places";
 import { COMPANY } from "@/content/company";
-import { TripCard } from "@/components/trip/trip-card";
+import { TripResult } from "@/components/trip/trip-result";
 import "@/styles/trip.css";
 import "@/styles/product.css";
 
@@ -116,11 +116,14 @@ export default async function ReisenPage({ searchParams }: { searchParams: Promi
         </p>
 
         {bookable.length ? (
-          <div className="tgrid" style={{ marginBlockEnd: "3rem" }}>
+          <>
+          <h2 className="tsub">Jetzt buchbar</h2>
+          <div className="tresults">
             {bookable.map((t, i) => (
-              <TripCard key={t.slug} t={t} priority={i < 3} />
+              <TripResult key={t.slug} t={t} priority={i < 3} />
             ))}
           </div>
+          </>
         ) : (
           <div className="rempty">
             <div style={{ display: "grid", gap: "0.8rem" }}>
@@ -143,9 +146,9 @@ export default async function ReisenPage({ searchParams }: { searchParams: Promi
         {planned.length && !monthStart ? (
           <>
             <h2 className="tsub">Ausgebucht oder neue Termine in Planung</h2>
-            <div className="tgrid">
+            <div className="tresults">
               {planned.map((t) => (
-                <TripCard key={t.slug} t={t} />
+                <TripResult key={t.slug} t={t} />
               ))}
             </div>
           </>
