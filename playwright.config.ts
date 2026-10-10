@@ -35,6 +35,12 @@ export default defineConfig({
       APP_ENV: "test",
       SESSION_SECRET: "e2e-session-secret-e2e-session-secret-0123",
       TICKET_SIGNING_SECRET: "e2e-ticket-secret-e2e-ticket-secret-01234",
+      // test-only payment path: signed events to the real webhook, no Stripe API calls
+      TEST_PAYMENTS: "1",
+      STRIPE_SECRET_KEY: "sk_test_e2e_not_a_real_key",
+      STRIPE_WEBHOOK_SECRET: "whsec_e2e_not_a_real_secret",
+      // syntactically valid dummy; every Mapbox request is answered by the test (tests/e2e/mapbox-mock.ts)
+      NEXT_PUBLIC_MAPBOX_TOKEN: "pk.eyJ1IjoibWV0cm9wb2wtdGVzdCIsImEiOiJ0ZXN0In0.test-signature",
     },
   },
 });

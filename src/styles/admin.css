@@ -271,3 +271,16 @@ table.data td.num {
     flex: none;
   }
 }
+
+.adm .muted {
+  color: var(--fg-muted);
+  font-size: var(--step--1);
+}
+.adm .alert {
+  margin: 0;
+}
+.adm details > summary {
+  cursor: pointer;
+  color: var(--brand-deep);
+  font-weight: 600;
+}

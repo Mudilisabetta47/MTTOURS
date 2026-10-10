@@ -40,12 +40,15 @@ test("hero offers both paths and the search reaches real targets", async ({ page
   await page.locator("#s-ziel").selectOption("nizza");
   await page.getByRole("button", { name: "Reisen anzeigen" }).click();
   await expect(page).toHaveURL(/\/reisen\?ziel=nizza/);
-  await expect(page.getByText("Für diese Auswahl gibt es gerade keinen buchbaren Termin.")).toBeVisible();
+  // the seeded bookable test trip to Nizza is found, nothing else is invented
+  await expect(page.getByRole("link", { name: /E2E Testreise Nizza/ }).first()).toBeVisible();
 });
 
-test("no empty trip list pretends availability", async ({ page }) => {
+test("the homepage lists only trips that can really be booked as bookable", async ({ page }) => {
   await page.goto("/");
-  await expect(page.getByText("Aktuell ist kein Reisetermin online buchbar.")).toBeVisible();
+  await expect(page.locator(".tgrid").getByText("E2E Testreise Nizza").first()).toBeVisible();
+  // sold-out and dateless test trips exist, but only one trip has free seats
+  await expect(page.locator(".tcount")).toHaveText("1 Reise mit freien Plätzen.");
 });
 
 test("the bus journey is deterministic: same scroll position, same frame", async ({ page }) => {

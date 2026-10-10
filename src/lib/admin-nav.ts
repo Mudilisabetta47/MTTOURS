@@ -32,9 +32,10 @@ export const ADMIN_NAV: NavGroup[] = [
     label: "Reisen",
     items: [
       { href: "/admin/reisen", label: "Reisen", permission: "trip.read", implemented: false, phase: 3 },
-      { href: "/admin/buchungen", label: "Buchungen", permission: "booking.read", implemented: false, phase: 3 },
+      { href: "/admin/buchungen", label: "Buchungen", permission: "booking.read", implemented: true, phase: 3 },
       { href: "/admin/tickets", label: "Tickets", permission: "ticket.read", implemented: false, phase: 3 },
       { href: "/admin/haltestellen", label: "Haltestellen", permission: "stop.read", implemented: false, phase: 3 },
+      { href: "/admin/destinationen", label: "Destinationen", permission: "cms.read", implemented: true, phase: 3 },
     ],
   },
   {

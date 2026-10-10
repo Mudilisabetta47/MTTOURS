@@ -284,6 +284,7 @@ model MediaAsset {
 
   tripMedia    TripMedia[]
   vehicleMedia VehicleMedia[]
+  pois         DestinationPoi[]
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -336,6 +337,9 @@ model Trip {
   highlights      String[]
   /// Open editorial points that must be resolved by the office before the content counts as verified.
   reviewNotes     String[]
+  /// Destination guide (places, map) shown on the product page.
+  guideId         String?
+  guide           Destination?  @relation(fields: [guideId], references: [id], onDelete: SetNull)
   publishedAt     DateTime?
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
@@ -1692,4 +1696,83 @@ model LegacyIdMap {
 
   @@id([source, legacyTable, legacyId])
   @@index([entityType, entityId])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// DESTINATIONS: editorial guide + map for trip product pages
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Category of a place on the destination map. Highlights are a flag, not a category. */
+enum PoiCategory {
+  SIGHT // Sehenswürdigkeiten: Wahrzeichen, Altstadt, Museen
+  BEACH_NATURE // Strände, Parks, Aussichtspunkte
+  FOOD // Restaurants & Cafés
+  LEISURE // Shopping & Freizeit
+  TRANSPORT // Bahnhöfe, Busbahnhöfe
+  AIRPORT
+}
+
+enum PoiReview {
+  DRAFT // entered or suggested, not shown publicly
+  VERIFIED // name and coordinates checked against a source – may be shown
+  REJECTED
+}
+
+model Destination {
+  id           String        @id @default(cuid())
+  slug         String        @unique
+  name         String // "Nizza"
+  countryCode  String
+  region       String? // "Côte d'Azur"
+  city         String
+  latitude     Float
+  longitude    Float
+  /// Point all distances are measured from when no confirmed accommodation exists.
+  refLabel     String // "Stadtzentrum (Place Masséna)"
+  refLatitude  Float
+  refLongitude Float
+  intro        String?
+  defaultZoom  Float         @default(13)
+  seoTitle     String?
+  seoDescription String?
+  status       PublishStatus @default(DRAFT)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  pois  DestinationPoi[]
+  trips Trip[]
+}
+
+/**
+ * An editorially maintained place. Coordinates come from a source that allows storage
+ * (OpenStreetMap/ODbL or own survey) – never from Mapbox Search results, which may only be used temporarily.
+ */
+model DestinationPoi {
+  id            String      @id @default(cuid())
+  destinationId String
+  name          String
+  category      PoiCategory
+  description   String?
+  latitude      Float
+  longitude     Float
+  address       String?
+  /// "osm:way/123456" | "editorial"
+  source        String
+  attribution   String?
+  review        PoiReview   @default(DRAFT)
+  verifiedAt    DateTime?
+  verifiedBy    String?
+  isActive      Boolean     @default(true)
+  isHighlight   Boolean     @default(false)
+  highlightText String?
+  mediaId       String?
+  sort          Int         @default(0)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  destination Destination @relation(fields: [destinationId], references: [id], onDelete: Cascade)
+  media       MediaAsset? @relation(fields: [mediaId], references: [id], onDelete: SetNull)
+
+  @@unique([destinationId, name])
+  @@index([destinationId, category, sort])
 }

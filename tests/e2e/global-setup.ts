@@ -5,6 +5,7 @@ import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "../../src/generated/prisma/client.ts";
 import { hashPassword } from "../../src/server/auth/password.ts";
 import { assertTestDatabase } from "../db/safety.ts";
+import { seedE2eCatalog } from "./seed.ts";
 
 /** Fresh e2e database with two accounts whose random passwords are handed to the specs via a git-ignored file. */
 export default async function globalSetup() {
@@ -30,6 +31,7 @@ export default async function globalSetup() {
     await db.user.create({
       data: { email: accounts.driver.email, displayName: "E2E Fahrer", passwordHash: await hashPassword(accounts.driver.password), roles: { create: [{ role: "DRIVER" }] } },
     });
+    await seedE2eCatalog(db);
   } finally {
     await db.$disconnect();
   }

@@ -53,12 +53,15 @@ test("owner sees real (empty) dashboard figures and system modules", async ({ pa
   await expect(page).toHaveURL(/\/admin$/);
   await expect(page.getByRole("heading", { name: "Dashboard" })).toBeVisible();
   await expect(page.getByText("Fahrten heute")).toBeVisible();
-  await expect(page.getByText("keine Abfahrt im Verkauf")).toBeVisible();
+  // computed from the seeded test departures – a real figure, never a placeholder number
+  await expect(page.getByText(/\d+ von \d+ Plätzen/)).toBeVisible();
   const nav = page.getByRole("complementary", { name: "Hauptnavigation" });
   await expect(nav.getByRole("link", { name: "Mitarbeiter" })).toBeVisible();
   await expect(nav.getByRole("link", { name: "Protokoll" })).toBeVisible();
   // unbuilt modules are not shown as dead links
-  await expect(nav.getByRole("link", { name: "Buchungen" })).toHaveCount(0);
+  await expect(nav.getByRole("link", { name: "Buchungen" })).toBeVisible();
+  await expect(nav.getByRole("link", { name: "Destinationen" })).toBeVisible();
+  await expect(nav.getByRole("link", { name: "Tickets" })).toHaveCount(0);
   await page.screenshot({ path: `test-results/screens/dashboard-${info.project.name}.png`, fullPage: true });
 
   const cookies = await page.context().cookies();

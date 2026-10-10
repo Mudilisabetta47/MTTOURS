@@ -2,6 +2,8 @@ import Stripe from "stripe";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { CheckoutError, confirmPaidOrder, expireOrder, startCheckout, type CheckoutData } from "@/server/booking/checkout";
 import { processStripeEvent } from "@/server/payments/stripe";
+import { resolveSelection, SelectionError } from "@/server/booking/selection";
+import { getPublishedTrip } from "@/server/catalog/trips";
 import { testDb, truncateAll } from "./helpers";
 
 const db = testDb();
@@ -80,6 +82,46 @@ describe("checkout", () => {
   it("does not sell a package tour without insolvency protection", async () => {
     const { dep, stopId } = await seed({ productType: "PACKAGE_TOUR" });
     await expect(startCheckout(db, input(dep.code, stopId, 1), { ipHash: null })).rejects.toMatchObject({ code: "not_on_sale" });
+  });
+});
+
+describe("live price (resolveSelection)", () => {
+  const sel = (code: string, stopId: string, extra: Record<string, unknown> = {}) => ({ departureCode: code, fareCode: "SMART", boardingStopId: stopId, passengers: 2, options: [], ...extra });
+
+  it("includes the pickup surcharge and matches the checkout total", async () => {
+    const { dep, stopId, option } = await seed();
+    const r = await resolveSelection(db, sel(dep.code, stopId, { options: [{ id: option.id, quantity: 2 }] }));
+    expect(r.price.totalCents).toBe(2 * 29900 + 2 * 1900 + 2 * 3900);
+    expect(r.price.lines.map((l) => l.kind)).toEqual(["FARE", "STOP_SURCHARGE", "OPTIONAL_SERVICE"]);
+  });
+
+  it("rejects an unknown tariff, an expired date and more travellers than seats", async () => {
+    const { dep, stopId } = await seed({ capacity: 3 });
+    await expect(resolveSelection(db, sel(dep.code, stopId, { fareCode: "FAKE" }))).rejects.toThrow(SelectionError);
+    await expect(resolveSelection(db, sel(dep.code, stopId, { passengers: 4 }))).rejects.toMatchObject({ code: "sold_out" });
+    await db.tripDeparture.update({ where: { id: dep.id }, data: { departAt: new Date(Date.now() - 86400_000) } });
+    await expect(resolveSelection(db, sel(dep.code, stopId))).rejects.toMatchObject({ code: "not_on_sale" });
+  });
+});
+
+describe("trip page state", () => {
+  it("derives BOOKABLE / SOLD_OUT / COMING_SOON from the database", async () => {
+    const { trip, dep } = await seed({ capacity: 2 });
+    expect((await getPublishedTrip(db, trip.slug))!.state).toBe("BOOKABLE");
+    await db.tripDeparture.update({ where: { id: dep.id }, data: { soldCount: 2 } });
+    expect((await getPublishedTrip(db, trip.slug))!.state).toBe("SOLD_OUT");
+    await db.tripDeparture.update({ where: { id: dep.id }, data: { status: "CANCELLED" } });
+    expect((await getPublishedTrip(db, trip.slug))!.state).toBe("CANCELLED");
+    await db.tripDeparture.update({ where: { id: dep.id }, data: { departAt: new Date(Date.now() - 86400_000) } });
+    expect((await getPublishedTrip(db, trip.slug))!.state).toBe("COMING_SOON");
+  });
+
+  it("keeps an unprotected package tour in COMING_SOON even with dates", async () => {
+    const { trip } = await seed({ productType: "PACKAGE_TOUR", certificate: null });
+    const t = await getPublishedTrip(db, trip.slug);
+    expect(t!.state).toBe("COMING_SOON");
+    expect(t!.lockReason).toBe("package_unprotected");
+    expect(t!.departures).toEqual([]);
   });
 });
 

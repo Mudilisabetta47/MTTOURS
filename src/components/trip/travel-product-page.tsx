@@ -7,6 +7,8 @@ import { BUSINESS_TZ } from "@/lib/time";
 import { TripGallery } from "./gallery";
 import { BookingCard, type BookingCardProps } from "./booking-card";
 import { PickDepartureButton, SectionNav } from "./trip-interactions";
+import type { Guide } from "@/server/catalog/destinations";
+import { DestinationSection } from "@/components/destination/destination-section";
 
 const dLong = new Intl.DateTimeFormat("de-DE", { timeZone: BUSINESS_TZ, weekday: "short", day: "2-digit", month: "long", year: "numeric" });
 const tFmt = new Intl.DateTimeFormat("de-DE", { timeZone: BUSINESS_TZ, hour: "2-digit", minute: "2-digit" });
@@ -112,7 +114,7 @@ function TariffComparison({ d }: { d: TripDeparture }) {
   );
 }
 
-export function TravelProductPage({ t, path, breadcrumb }: { t: TripDetail; path: string; breadcrumb: { label: string; href: string } }) {
+export function TravelProductPage({ t, path, breadcrumb, guide }: { t: TripDetail; path: string; breadcrumb: { label: string; href: string }; guide: Guide | null }) {
   const url = `${COMPANY.url}${path}`;
   const type = TYPE[t.productType] ?? TYPE.PACKAGE_TOUR!;
   const bookable = t.state === "BOOKABLE";
@@ -170,6 +172,7 @@ export function TravelProductPage({ t, path, breadcrumb }: { t: TripDetail; path
     ...(t.itinerary.length ? [{ id: "verlauf", label: "Reiseverlauf" }] : []),
     ...(cities.length ? [{ id: "zustiege", label: "Zustiege" }] : []),
     ...(t.hotelName ? [{ id: "hotel", label: "Unterkunft" }] : []),
+    ...(guide ? [{ id: "umgebung", label: "Umgebung" }] : []),
     { id: "infos", label: "Reiseinfos" },
     { id: "fragen", label: "FAQ" },
   ];
@@ -492,6 +495,8 @@ export function TravelProductPage({ t, path, breadcrumb }: { t: TripDetail; path
               </div>
             </section>
           ) : null}
+
+          {guide ? <DestinationSection guide={guide} /> : null}
 
           <section id="infos" className="tp-sec" aria-labelledby="h-infos">
             <h2 id="h-infos">Reiseinfos &amp; Sicherheit</h2>

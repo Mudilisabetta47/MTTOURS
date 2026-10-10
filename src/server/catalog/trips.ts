@@ -129,6 +129,9 @@ export interface TripDetail {
   hotelName: string | null;
   hotelStars: number | null;
   hotelAddress: string | null;
+  hotelLat: number | null;
+  hotelLng: number | null;
+  guideId: string | null;
   seoTitle: string | null;
   seoDescription: string | null;
   included: string[];
@@ -228,6 +231,9 @@ export async function getPublishedTrip(db: Db, slug: string, now = new Date()): 
     hotelName: t.hotelName,
     hotelStars: t.hotelStars,
     hotelAddress: t.hotelAddress,
+    hotelLat: t.latitude,
+    hotelLng: t.longitude,
+    guideId: t.guideId,
     seoTitle: t.seoTitle,
     seoDescription: t.seoDescription,
     included: t.inclusions.filter((i) => i.kind === "INCLUDED").map((i) => i.text),

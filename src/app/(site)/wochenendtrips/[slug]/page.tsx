@@ -4,8 +4,10 @@ import { notFound, permanentRedirect } from "next/navigation";
 import { db } from "@/server/db/client";
 import { getPublishedTrip, tripPath } from "@/server/catalog/trips";
 import { tripMetadata } from "@/server/catalog/metadata";
+import { getTripGuide } from "@/server/catalog/destinations";
 import { TravelProductPage } from "@/components/trip/travel-product-page";
 import "@/styles/product.css";
+import "@/styles/destination.css";
 
 export const dynamic = "force-dynamic";
 
@@ -25,5 +27,6 @@ export default async function WeekendTripPage({ params }: Props) {
   const t = await load(slug);
   if (!t) notFound();
   if (t.productType !== "TRANSPORT_ONLY") permanentRedirect(tripPath(t) as never);
-  return <TravelProductPage t={t} path={tripPath(t)} breadcrumb={{ label: "Wochenendtrips", href: "/wochenendtrips" }} />;
+  const guide = await getTripGuide(db, t.guideId, { name: t.hotelName, lat: t.hotelLat, lng: t.hotelLng });
+  return <TravelProductPage t={t} guide={guide} path={tripPath(t)} breadcrumb={{ label: "Wochenendtrips", href: "/wochenendtrips" }} />;
 }
