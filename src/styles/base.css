@@ -141,9 +141,32 @@ textarea {
   cursor: not-allowed;
 }
 .btn--brand {
-  --btn-bg: var(--brand);
-  --btn-fg: var(--on-brand);
-  --btn-hover: var(--brand-strong);
+  --btn-bg: var(--brand-button);
+  --btn-fg: #fff;
+  --btn-hover: var(--brand-button-hover);
+  box-shadow:
+    inset 0 0 0 1px color-mix(in oklab, var(--brand) 55%, transparent),
+    inset 0 1px 0 color-mix(in oklab, #fff 22%, transparent),
+    0 8px 24px -10px color-mix(in oklab, var(--brand) 70%, transparent);
+  transition:
+    background-color var(--dur-sm) var(--ease-swift),
+    transform var(--dur-sm) var(--ease-swift),
+    box-shadow var(--dur-md) var(--ease-swift);
+}
+.btn--brand:hover {
+  box-shadow:
+    inset 0 0 0 1px var(--brand),
+    inset 0 1px 0 color-mix(in oklab, #fff 28%, transparent),
+    0 14px 38px -8px color-mix(in oklab, var(--brand) 85%, transparent);
+}
+/* Arrow that travels on hover */
+.btn--arrow::after {
+  content: "→";
+  display: inline-block;
+  transition: transform var(--dur-md) var(--ease-out-expo);
+}
+.btn--arrow:hover::after {
+  transform: translateX(4px);
 }
 .btn--ghost {
   --btn-bg: transparent;

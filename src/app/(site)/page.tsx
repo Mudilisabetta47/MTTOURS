@@ -14,6 +14,8 @@ import { SearchPanel } from "@/components/home/search-panel";
 import { Journey } from "@/components/home/journey";
 import { DestinationRail } from "@/components/home/destination-rail";
 import { RouteMap } from "@/components/home/route-map";
+import { PlaceMarquee } from "@/components/home/marquee";
+import { Statement } from "@/components/home/statement";
 import { JsonLd, organizationJsonLd } from "@/components/site/json-ld";
 
 export const revalidate = 300;
@@ -66,7 +68,7 @@ export default async function HomePage() {
             Busreisen und individuelle Busvermietung ab Hannover, Bremen und Hamburg.
           </p>
           <div className="hero__ctas" data-reveal="up" style={{ "--rv-delay": "420ms" } as React.CSSProperties}>
-            <a className="btn btn--brand btn--lg" href="#suche" data-magnetic="0.3" data-cursor="cta">
+            <a className="btn btn--brand btn--lg btn--arrow" href="#suche" data-magnetic="0.3" data-cursor="cta">
               Reise finden
             </a>
             <Link className="btn btn--ghost-light btn--lg" href="/bus-mieten" data-magnetic="0.3">
@@ -74,14 +76,32 @@ export default async function HomePage() {
             </Link>
           </div>
         </div>
-        <div className="hero__meta mono-label" aria-hidden="true">
-          <span>MAN Lion’s Coach · Hannover</span>
-          <span className="hero__scroll" />
-        </div>
+        <div className="hero__grain" aria-hidden="true" />
+        <ul className="hero__bar shell" aria-label="Auf einen Blick">
+          <li>
+            <span className="mono-label">Zustiege</span>
+            <strong>Hamburg · Bremen · Hannover</strong>
+          </li>
+          <li>
+            <span className="mono-label">Busvermietung</span>
+            <strong>Mit Fahrer, schriftliches Angebot</strong>
+          </li>
+          <li>
+            <span className="mono-label">Erreichbar</span>
+            <strong>
+              <a href={`tel:${tel}`}>{COMPANY.phoneDisplay}</a> · {COMPANY.hours}
+            </strong>
+          </li>
+          <li className="hero__scrollcue" aria-hidden="true">
+            <span className="hero__scroll" />
+          </li>
+        </ul>
       </ScrollStage>
 
       {/* 02 SEARCH */}
       <SearchPanel />
+
+      <PlaceMarquee />
 
       {/* 03 POPULAR TRIPS (database only) */}
       <section className="sec shell" aria-labelledby="trips-title">
@@ -105,7 +125,7 @@ export default async function HomePage() {
             ))}
           </div>
         ) : (
-          <div className="trips__empty" data-reveal="up">
+          <div className="trips__empty on-dark" data-reveal="up">
             <div style={{ display: "grid", gap: "0.8rem" }}>
               <h3>Aktuell ist kein Reisetermin online buchbar.</h3>
               <p>
@@ -117,7 +137,7 @@ export default async function HomePage() {
               <Link className="btn btn--brand" href="/bus-mieten?anlass=gruppenreise#anfrage" data-magnetic="0.2">
                 Gruppenreise anfragen
               </Link>
-              <a className="btn btn--ghost" href={`tel:${tel}`}>
+              <a className="btn btn--ghost-light" href={`tel:${tel}`}>
                 {COMPANY.phoneDisplay}
               </a>
             </div>
@@ -144,6 +164,8 @@ export default async function HomePage() {
 
       {/* 05 DESTINATIONS */}
       <DestinationRail />
+
+      <Statement />
 
       {/* 06 BUS RENTAL */}
       <section className="sec shell" aria-labelledby="rental-title">
@@ -177,7 +199,7 @@ export default async function HomePage() {
             <li>Abholung an Ihrer Adresse</li>
             <li>schriftliches Angebot vor der Buchung</li>
           </ul>
-          <Link className="btn btn--brand btn--lg" href="/bus-mieten#anfrage" data-magnetic="0.3" data-cursor="cta">
+          <Link className="btn btn--brand btn--lg btn--arrow" href="/bus-mieten#anfrage" data-magnetic="0.3" data-cursor="cta">
             Angebot anfragen
           </Link>
         </div>
@@ -186,7 +208,7 @@ export default async function HomePage() {
       {/* 07 FLEET */}
       <ScrollStage className="fleet" start="top top" end="bottom bottom" aria-labelledby="fleet-title">
         <div className="fleet__track">
-          <div className="fleet__stage">
+          <div className="fleet__stage grain">
             <div className="fleet__media">
               <Image src="/media/metropol-man-lions-coach.jpg" alt="" fill sizes="100vw" quality={78} />
             </div>

@@ -4,6 +4,8 @@
  * Facing right. (x, groundY) = rear wheel-contact line at the rear bumper.
  */
 
+import { sceneFont } from "./font";
+
 export const COACH_LENGTH = 13.9;
 export const COACH_HEIGHT = 3.8;
 const WHEEL_R = 0.52;
@@ -188,7 +190,7 @@ export function paintCoach(
 
   // lettering on the rear panel, as on the real bus
   const fs = Math.max(8, 0.4 * s);
-  ctx.font = `800 ${fs}px "DM Sans", system-ui, sans-serif`;
+  ctx.font = sceneFont(800, fs);
   ctx.fillStyle = `rgba(12,18,10,${0.9})`;
   ctx.textBaseline = "alphabetic";
   ctx.fillText("METROPOL TOURS", X(0.42), Y(1.22));

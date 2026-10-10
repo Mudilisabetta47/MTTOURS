@@ -6,11 +6,12 @@ async function scrollToTrackProgress(page: Page, selector: string, p: number) {
     ({ selector, p }) => {
       const el = document.querySelector(selector)!;
       const r = el.getBoundingClientRect();
-      window.scrollTo(0, r.top + window.scrollY + (r.height - window.innerHeight) * p);
+      window.scrollTo(0, Math.round(r.top + window.scrollY + (r.height - window.innerHeight) * p));
     },
     { selector, p },
   );
   await page.waitForTimeout(350);
+  return page.evaluate(() => window.scrollY);
 }
 
 async function canvasHash(page: Page) {
@@ -49,12 +50,15 @@ test("no empty trip list pretends availability", async ({ page }) => {
 
 test("the bus journey is deterministic: same scroll position, same frame", async ({ page }) => {
   await page.goto("/");
-  await scrollToTrackProgress(page, ".journey__track", 0.47);
+  // Approach the same position from different directions: the frame must not depend on scroll history.
+  await scrollToTrackProgress(page, ".journey__track", 0.2);
+  const ya = await scrollToTrackProgress(page, ".journey__track", 0.47);
   const a = await canvasHash(page);
   await scrollToTrackProgress(page, ".journey__track", 0.9);
   const b = await canvasHash(page);
-  await scrollToTrackProgress(page, ".journey__track", 0.47);
+  const yc = await scrollToTrackProgress(page, ".journey__track", 0.47);
   const c = await canvasHash(page);
+  expect(yc).toBe(ya);
   expect(a).toBe(c);
   expect(a).not.toBe(b);
   await expect(page.locator(".journey__act").nth(3)).toHaveCSS("opacity", "1");

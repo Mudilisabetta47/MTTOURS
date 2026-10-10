@@ -28,17 +28,19 @@ export interface Destination extends Place {
   /** how it appeared in the existing programme */
   format: "Pauschalreise" | "Wochenendtrip";
   tone: [string, string];
+  /** illustration motif for the destination card */
+  motif: "riviera" | "beach" | "island" | "paris" | "prag" | "amsterdam" | "kopenhagen";
 }
 
 export const DESTINATIONS: Destination[] = [
-  { slug: "nizza", name: "Nizza", country: "Frankreich", format: "Pauschalreise", lat: 43.7034, lng: 7.2663, tone: ["#f4b57f", "#2f6fae"] },
-  { slug: "lloret-de-mar", name: "Lloret de Mar", country: "Spanien", format: "Pauschalreise", lat: 41.6995, lng: 2.8456, tone: ["#ffd08a", "#1f7fb6"] },
-  { slug: "sanremo", name: "Sanremo", country: "Italien", format: "Pauschalreise", lat: 43.8159, lng: 7.7761, tone: ["#f7c59f", "#3b7fa8"] },
-  { slug: "novalja", name: "Novalja", country: "Kroatien", format: "Pauschalreise", lat: 44.5544, lng: 14.8856, tone: ["#d9f0ff", "#0f6c8f"] },
-  { slug: "paris", name: "Paris", country: "Frankreich", format: "Wochenendtrip", lat: 48.8566, lng: 2.3522, tone: ["#c9b8d9", "#2b2f55"] },
-  { slug: "prag", name: "Prag", country: "Tschechien", format: "Wochenendtrip", lat: 50.0755, lng: 14.4378, tone: ["#e9c9a0", "#4a2f3a"] },
-  { slug: "amsterdam", name: "Amsterdam", country: "Niederlande", format: "Wochenendtrip", lat: 52.3676, lng: 4.9041, tone: ["#ffd9a8", "#20425e"] },
-  { slug: "kopenhagen", name: "Kopenhagen", country: "Dänemark", format: "Wochenendtrip", lat: 55.6761, lng: 12.5683, tone: ["#f4e0b8", "#25506b"] },
+  { slug: "nizza", name: "Nizza", country: "Frankreich", format: "Pauschalreise", lat: 43.7034, lng: 7.2663, tone: ["#f4b57f", "#2f6fae"], motif: "riviera" },
+  { slug: "lloret-de-mar", name: "Lloret de Mar", country: "Spanien", format: "Pauschalreise", lat: 41.6995, lng: 2.8456, tone: ["#ffd08a", "#1f7fb6"], motif: "beach" },
+  { slug: "sanremo", name: "Sanremo", country: "Italien", format: "Pauschalreise", lat: 43.8159, lng: 7.7761, tone: ["#f7c59f", "#3b7fa8"], motif: "riviera" },
+  { slug: "novalja", name: "Novalja", country: "Kroatien", format: "Pauschalreise", lat: 44.5544, lng: 14.8856, tone: ["#d9f0ff", "#0f6c8f"], motif: "island" },
+  { slug: "paris", name: "Paris", country: "Frankreich", format: "Wochenendtrip", lat: 48.8566, lng: 2.3522, tone: ["#c9b8d9", "#2b2f55"], motif: "paris" },
+  { slug: "prag", name: "Prag", country: "Tschechien", format: "Wochenendtrip", lat: 50.0755, lng: 14.4378, tone: ["#e9c9a0", "#4a2f3a"], motif: "prag" },
+  { slug: "amsterdam", name: "Amsterdam", country: "Niederlande", format: "Wochenendtrip", lat: 52.3676, lng: 4.9041, tone: ["#ffd9a8", "#20425e"], motif: "amsterdam" },
+  { slug: "kopenhagen", name: "Kopenhagen", country: "Dänemark", format: "Wochenendtrip", lat: 55.6761, lng: 12.5683, tone: ["#f4e0b8", "#25506b"], motif: "kopenhagen" },
 ];
 
 /** Great-circle distance in km (straight line, not road distance). */

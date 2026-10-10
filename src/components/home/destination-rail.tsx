@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useRef } from "react";
 import { motionEnv, refreshAll, track } from "@/motion/engine";
 import { DEPARTURE_POINTS, DESTINATIONS, distanceKm, formatCoord } from "@/content/places";
+import { DestinationArt } from "./destination-art";
 
 const HANNOVER = DEPARTURE_POINTS.find((d) => d.slug === "hannover")!;
 
@@ -60,6 +61,7 @@ export function DestinationRail() {
                 data-cursor="cta"
                 data-cursor-label="Termine"
               >
+                <DestinationArt d={d} />
                 <span className="dest__top">
                   <span>{d.country}</span>
                   <span>{d.format}</span>

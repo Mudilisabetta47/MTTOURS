@@ -18,11 +18,13 @@ const viewports = [
 const targets = [
   { name: "hero", sel: ".hero", at: 0 },
   { name: "search", sel: "#suche", at: -0.15 },
+  { name: "marquee", sel: ".marquee", at: -0.35 },
   { name: "trips", sel: ".trips__empty, .trips__grid", at: -0.3 },
   ...[0.02, 0.18, 0.32, 0.47, 0.64, 0.8, 0.96].map((p, i) => ({ name: `journey-${i + 1}`, sel: ".journey__track", track: p })),
   { name: "window-mid", sel: ".window__track", track: 0.45 },
   { name: "rail-0", sel: ".rail__track", track: 0.02 },
   { name: "rail-60", sel: ".rail__track", track: 0.6 },
+  { name: "statement", sel: ".statement", at: -0.15 },
   { name: "rental", sel: ".rental__grid", at: -0.4 },
   { name: "fleet-80", sel: ".fleet__track", track: 0.8 },
   { name: "paths", sel: ".paths", at: -0.2 },

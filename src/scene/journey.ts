@@ -13,6 +13,8 @@
  *   07 Metropol   0.90–1.00  coach at rest, hand-over to trip selection
  */
 
+import { sceneFont } from "./font";
+
 import { COACH_LENGTH, paintCoach } from "./coach";
 import { hex, mix, mulberry32, noise1, ramp, rgba, type RGB } from "./color";
 
@@ -200,6 +202,11 @@ function render(ctx: CanvasRenderingContext2D, L: Layout, p: number, stars: { x:
     ? W * (0.5 - 0.04 * sstep(0.12, 0.3, p))
     : W * (0.64 - 0.05 * sstep(0.12, 0.3, p) + 0.03 * sstep(0.86, 0.98, p));
   const camX = dist + COACH_LENGTH / 2; // world x at busCenterX
+
+  // 0 — clear the whole frame. Layers end on fractional pixel rows; without this, anti-aliased edge rows
+  //     would keep traces of the previous frame and the picture would depend on scroll history.
+  ctx.fillStyle = "#030507";
+  ctx.fillRect(0, 0, W, H);
 
   // 1 — sky
   const top = ramp(SKY_TOP, p);
@@ -562,14 +569,14 @@ function paintNearObjects(
     ctx.arc(sx + 0.06 * s, roadTop - 3.7 * s, 0.6 * s, 0, Math.PI * 2);
     ctx.fill();
     ctx.fillStyle = rgba(dark(hex("#0a7a3a"), 0.5));
-    ctx.font = `800 ${Math.max(8, 0.75 * s)}px "DM Sans", system-ui, sans-serif`;
+    ctx.font = sceneFont(800, Math.max(8, 0.75 * s));
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     ctx.fillText("H", sx + 0.06 * s, roadTop - 3.66 * s);
     ctx.fillStyle = rgba(dark(hex("#ffffff"), 0.5));
     ctx.fillRect(sx - 1.6 * s, roadTop - 2.95 * s, 3.3 * s, 0.7 * s);
     ctx.fillStyle = rgba(dark(hex("#111111"), 0.3));
-    ctx.font = `700 ${Math.max(7, 0.42 * s)}px "DM Sans", system-ui, sans-serif`;
+    ctx.font = sceneFont(700, Math.max(7, 0.42 * s));
     ctx.fillText("Hannover ZOB", sx + 0.05 * s, roadTop - 2.6 * s);
     ctx.textAlign = "start";
   }
@@ -650,11 +657,11 @@ function paintNearObjects(
     ctx.lineWidth = Math.max(1, 0.12 * s);
     ctx.strokeRect(signX - 0.25 * s, roadTop - 5.45 * s, 3.8 * s, 1.4 * s);
     ctx.fillStyle = rgba(dark(hex("#111111"), 0.3));
-    ctx.font = `800 ${Math.max(8, 0.62 * s)}px "DM Sans", system-ui, sans-serif`;
+    ctx.font = sceneFont(800, Math.max(8, 0.62 * s));
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     ctx.fillText("NICE", signX + 1.65 * s, roadTop - 4.95 * s);
-    ctx.font = `600 ${Math.max(6, 0.32 * s)}px "DM Sans", system-ui, sans-serif`;
+    ctx.font = sceneFont(600, Math.max(6, 0.32 * s));
     ctx.fillText("Nizza", signX + 1.65 * s, roadTop - 4.45 * s);
     ctx.textAlign = "start";
   }

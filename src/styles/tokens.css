@@ -14,6 +14,9 @@
   --brand-strong: #07a84d; /* hover/pressed on dark */
   --brand-deep: #05693a; /* green text/labels on light backgrounds (AA contrast) */
   --livery: #8cc63f;
+  /* Button green: deeper Metropol green so white text reaches 4.7:1 (WCAG AA) */
+  --brand-button: #068541;
+  --brand-button-hover: #05733a;
   --ink: #050607;
   --night: #030507;
   --bone: #f4f5f1;

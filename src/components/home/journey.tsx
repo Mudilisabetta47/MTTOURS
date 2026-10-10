@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useRef } from "react";
 import { motionEnv, track, whileInView, window01 } from "@/motion/engine";
 import { ACTS, createJourneyFilm, type FilmHandle } from "@/scene/journey";
+import { setSceneFont } from "@/scene/font";
 
 const COPY = [
   { label: "Start", title: "Hannover ZOB.", text: "Der Bus steht bereit. Gepäck ist verstaut, die Plätze sind reserviert." },
@@ -29,6 +30,7 @@ export function Journey() {
     const el = root.current;
     if (!cv || !tr || !el) return;
     const env = motionEnv();
+    setSceneFont(getComputedStyle(document.body).fontFamily);
     let film: FilmHandle;
     try {
       film = createJourneyFilm(cv, { maxDpr: env.maxDpr, small: env.small });

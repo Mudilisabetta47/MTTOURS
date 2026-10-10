@@ -15,8 +15,15 @@ const NAV = [
 
 export function SiteHeader() {
   const [solid, setSolid] = useState(false);
-  const [open, setOpen] = useState(false);
   const pathname = usePathname();
+  // The menu is open only for the path it was opened on, so navigating closes it without an effect.
+  const [openOn, setOpenOn] = useState<string | null>(null);
+  const open = openOn === pathname;
+  const setOpen = (v: boolean | ((prev: boolean) => boolean)) =>
+    setOpenOn((prev) => {
+      const next = typeof v === "function" ? v(prev === pathname) : v;
+      return next ? pathname : null;
+    });
   const menuRef = useRef<HTMLDivElement>(null);
   const toggleRef = useRef<HTMLButtonElement>(null);
 
@@ -27,8 +34,6 @@ export function SiteHeader() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  useEffect(() => setOpen(false), [pathname]);
-
   useEffect(() => {
     if (!open) return;
     document.documentElement.classList.add("menu-open");
@@ -36,7 +41,7 @@ export function SiteHeader() {
     first?.focus();
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
-        setOpen(false);
+        setOpenOn(null);
         toggleRef.current?.focus();
       }
       if (e.key === "Tab" && menuRef.current) {
