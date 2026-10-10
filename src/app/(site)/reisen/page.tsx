@@ -4,9 +4,9 @@ import { db } from "@/server/db/client";
 import { listPublishedTrips } from "@/server/catalog/trips";
 import { DEPARTURE_POINTS, DESTINATIONS } from "@/content/places";
 import { COMPANY } from "@/content/company";
-import { SplitText } from "@/components/site/split-text";
 import { TripCard } from "@/components/trip/trip-card";
 import "@/styles/trip.css";
+import "@/styles/product.css";
 
 export const dynamic = "force-dynamic";
 
@@ -45,52 +45,71 @@ export default async function ReisenPage({ searchParams }: { searchParams: Promi
 
   return (
     <>
-      <header className="page-hero">
+      <header className="rhero">
         <div className="shell">
-          <p className="mono-label" style={{ color: "var(--brand)" }}>
-            Reisen
-          </p>
-          <SplitText as="h1" text={dest ? `Reisen nach\n${dest.name}.` : q ? `Suche:\n„${q}“` : "Alle Reisen."} />
+          <nav aria-label="Brotkrumen" className="tp-crumbs">
+            <Link href="/">Start</Link>
+            <span aria-hidden="true">/</span>
+            <span aria-current="page">Reisen</span>
+          </nav>
+          <p className="rhero__kicker">Busreisen ab Hamburg, Bremen und Hannover</p>
+          <h1 className="rhero__title">{dest ? `Reisen nach ${dest.name}` : q ? `Ihre Suche: „${q}“` : "Wohin soll es gehen?"}</h1>
+          <p className="rhero__lead">Feste Termine, echte Preise und freie Plätze – direkt aus unserem Buchungssystem.</p>
+          <form className="rsearch" action="/reisen" method="get" role="search">
+            {q ? <input type="hidden" name="q" value={q} /> : null}
+            <div className="rsearch__field">
+              <label htmlFor="f-ziel">Reiseziel</label>
+              <select id="f-ziel" name="ziel" defaultValue={ziel ?? ""}>
+                <option value="">Alle Ziele</option>
+                {DESTINATIONS.map((d) => (
+                  <option key={d.slug} value={d.slug}>
+                    {d.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="rsearch__field">
+              <label htmlFor="f-ab">Abfahrt ab</label>
+              <select id="f-ab" name="ab" defaultValue={ab ?? ""}>
+                <option value="">Alle Zustiege</option>
+                {DEPARTURE_POINTS.map((d) => (
+                  <option key={d.slug} value={d.slug}>
+                    {d.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="rsearch__field">
+              <label htmlFor="f-monat">Reisezeitraum ab</label>
+              <input id="f-monat" name="monat" type="month" defaultValue={monat} />
+            </div>
+            <div className="rsearch__field rsearch__field--s">
+              <label htmlFor="f-pers">Reisende</label>
+              <input id="f-pers" name="personen" type="number" min={1} max={60} defaultValue={personen} />
+            </div>
+            <button className="btn btn--brand btn--lg btn--arrow rsearch__go" type="submit">
+              Reisen finden
+            </button>
+          </form>
+          <ul className="rhero__quick" aria-label="Schnellauswahl">
+            <li>
+              <Link href="/pauschalreisen">Pauschalreisen</Link>
+            </li>
+            <li>
+              <Link href="/wochenendtrips">Wochenendtrips</Link>
+            </li>
+            <li>
+              <Link href={"/bus-mieten?anlass=gruppenreise#anfrage" as never}>Gruppenreise anfragen</Link>
+            </li>
+            {hasFilter ? (
+              <li>
+                <Link href="/reisen">Filter zurücksetzen</Link>
+              </li>
+            ) : null}
+          </ul>
         </div>
       </header>
-      <section className="sec shell" aria-label="Reisen">
-        <form className="search__form" action="/reisen" method="get" style={{ marginBlockEnd: "2.5rem" }}>
-          {q ? <input type="hidden" name="q" value={q} /> : null}
-          <div className="field">
-            <label htmlFor="f-ziel">Reiseziel</label>
-            <select id="f-ziel" name="ziel" defaultValue={ziel ?? ""}>
-              <option value="">Alle Ziele</option>
-              {DESTINATIONS.map((d) => (
-                <option key={d.slug} value={d.slug}>
-                  {d.name}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="field">
-            <label htmlFor="f-ab">Abfahrtsort</label>
-            <select id="f-ab" name="ab" defaultValue={ab ?? ""}>
-              <option value="">Alle Abfahrtsorte</option>
-              {DEPARTURE_POINTS.map((d) => (
-                <option key={d.slug} value={d.slug}>
-                  {d.name}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="field">
-            <label htmlFor="f-monat">Zeitraum ab</label>
-            <input id="f-monat" name="monat" type="month" defaultValue={monat} />
-          </div>
-          <div className="field">
-            <label htmlFor="f-pers">Reisende</label>
-            <input id="f-pers" name="personen" type="number" min={1} max={60} defaultValue={personen} />
-          </div>
-          <button className="btn btn--brand" type="submit">
-            Aktualisieren
-          </button>
-        </form>
-
+      <section className="sec shell rresults" aria-label="Reisen">
         <p aria-live="polite" className="tabular tcount">
           {bookable.length === 1 ? "1 Reise" : `${bookable.length} Reisen`} mit freien Plätzen
           {planned.length ? ` · ${planned.length} in Planung` : ""}
@@ -98,12 +117,12 @@ export default async function ReisenPage({ searchParams }: { searchParams: Promi
 
         {bookable.length ? (
           <div className="tgrid" style={{ marginBlockEnd: "3rem" }}>
-            {bookable.map((t) => (
-              <TripCard key={t.slug} t={t} />
+            {bookable.map((t, i) => (
+              <TripCard key={t.slug} t={t} priority={i < 3} />
             ))}
           </div>
         ) : (
-          <div className="trips__empty on-dark" style={{ marginBlockEnd: "3rem" }}>
+          <div className="rempty">
             <div style={{ display: "grid", gap: "0.8rem" }}>
               <h2 style={{ fontSize: "var(--step-3)", letterSpacing: "var(--track-display)" }}>
                 {hasFilter ? "Für diese Auswahl gibt es gerade keinen buchbaren Termin." : "Aktuell ist kein Reisetermin online buchbar."}
@@ -114,7 +133,7 @@ export default async function ReisenPage({ searchParams }: { searchParams: Promi
               <Link className="btn btn--brand" href={`/bus-mieten?anlass=gruppenreise${dest ? `&ziel=${encodeURIComponent(dest.name)}` : ""}#anfrage` as never}>
                 Gruppenreise anfragen
               </Link>
-              <a className="btn btn--ghost-light" href={`tel:${COMPANY.phone.replace(/\s/g, "")}`}>
+              <a className="btn btn--ghost" href={`tel:${COMPANY.phone.replace(/\s/g, "")}`}>
                 {COMPANY.phoneDisplay}
               </a>
             </div>
@@ -123,7 +142,7 @@ export default async function ReisenPage({ searchParams }: { searchParams: Promi
 
         {planned.length && !monthStart ? (
           <>
-            <h2 className="tsub">Neue Termine in Planung</h2>
+            <h2 className="tsub">Ausgebucht oder neue Termine in Planung</h2>
             <div className="tgrid">
               {planned.map((t) => (
                 <TripCard key={t.slug} t={t} />

@@ -36,7 +36,13 @@ export interface TripSummary {
   summary: string;
   boardingCities: string[];
   next: { departAt: Date; fromPriceCents: number; seatsLeft: number; count: number } | null;
+  /** same derivation as the trip page (BOOKABLE only when it can really be bought online) */
+  state: "BOOKABLE" | "SOLD_OUT" | "COMING_SOON";
+  cover: { src: string; alt: string; width: number; height: number; rightsConfirmed: boolean } | null;
 }
+
+/** Media without confirmed rights are only shown outside production. */
+const showUnconfirmedMedia = () => process.env.APP_ENV !== "production";
 
 const onSaleWhere = (now: Date) => ({
   status: "ON_SALE" as const,
@@ -54,15 +60,28 @@ export async function listPublishedTrips(db: Db, opts: { productType?: ProductTy
       departures: {
         where: onSaleWhere(now),
         orderBy: { departAt: "asc" },
-        include: { fares: { where: { isActive: true, priceCents: { gt: 0 } }, select: { priceCents: true } } },
+        include: {
+          fares: { where: { isActive: true, priceCents: { gt: 0 } }, select: { priceCents: true } },
+          stops: { where: { kind: { in: ["PICKUP", "PICKUP_DROPOFF"] } }, select: { surchargeCents: true } },
+        },
+      },
+      media: {
+        orderBy: [{ role: "desc" }, { sort: "asc" }],
+        take: 3,
+        include: { media: { include: { file: { select: { key: true, bucket: true, visibility: true } } } } },
       },
     },
     orderBy: [{ title: "asc" }],
   });
   return trips
     .map((t) => {
-      const sellable = t.departures.filter((d) => d.fares.length > 0 && d.capacity - d.soldCount - d.heldCount > 0);
+      const locked = t.productType === "PACKAGE_TOUR" && !t.insolvencyCertificateRef;
+      const open = t.departures.filter((d) => d.fares.length > 0 && d.stops.length > 0);
+      const sellable = locked ? [] : open.filter((d) => d.capacity - d.soldCount - d.heldCount > 0);
       const first = sellable[0];
+      const cover = t.media
+        .map((m) => m.media)
+        .find((m) => m.file.bucket === "public" && m.file.visibility === "PUBLIC" && (m.rightsConfirmed || showUnconfirmedMedia()));
       return {
         slug: t.slug,
         title: t.title,
@@ -77,11 +96,14 @@ export async function listPublishedTrips(db: Db, opts: { productType?: ProductTy
         next: first
           ? {
               departAt: first.departAt,
-              fromPriceCents: Math.min(...sellable.flatMap((d) => d.fares.map((f) => f.priceCents))),
+              // cheapest fare + cheapest boarding point: a price one traveller can actually pay
+              fromPriceCents: Math.min(...sellable.map((d) => Math.min(...d.fares.map((f) => f.priceCents)) + Math.min(...d.stops.map((x) => x.surchargeCents)))),
               seatsLeft: first.capacity - first.soldCount - first.heldCount,
               count: sellable.length,
             }
           : null,
+        state: first ? ("BOOKABLE" as const) : !locked && open.length ? ("SOLD_OUT" as const) : ("COMING_SOON" as const),
+        cover: cover ? { src: `/media/${cover.file.key}`, alt: cover.alt, width: cover.width, height: cover.height, rightsConfirmed: cover.rightsConfirmed } : null,
       };
     })
     .sort((a, b) => (a.next ? 0 : 1) - (b.next ? 0 : 1) || (a.next && b.next ? a.next.departAt.getTime() - b.next.departAt.getTime() : 0));
@@ -147,9 +169,6 @@ export interface TripDetail {
   fromPriceCents: number | null;
   insolvencyProtected: boolean;
 }
-
-/** Media without confirmed rights are only shown outside production. */
-const showUnconfirmedMedia = () => process.env.APP_ENV !== "production";
 
 export async function getPublishedTrip(db: Db, slug: string, now = new Date()): Promise<TripDetail | null> {
   const t = await db.trip.findFirst({

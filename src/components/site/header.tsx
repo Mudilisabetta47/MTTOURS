@@ -105,7 +105,7 @@ function Panel({ item, visual, onNavigate }: { item: NavItem; visual: ReactNode;
 }
 
 /** Pages that start on a light background get the light-glass header right away (no white-on-white). */
-const LIGHT_PAGES = /^\/(reisen|wochenendtrips|pauschalreisen)\/[^/]+$|^\/buchung(\/|$)/;
+const LIGHT_PAGES = /^\/(reisen|wochenendtrips|pauschalreisen)\/[^/]+$|^\/reisen$|^\/buchung(\/|$)/;
 
 export function SiteHeader({ nav, visuals }: { nav: Navigation; visuals: Record<string, ReactNode> }) {
   const pathname = usePathname();
