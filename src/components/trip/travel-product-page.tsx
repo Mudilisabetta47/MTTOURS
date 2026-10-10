@@ -57,11 +57,6 @@ function Icon({ name }: { name: "pin" | "clock" | "bus" | "route" | "cal" | "che
   );
 }
 
-function durationLabel(t: TripDetail) {
-  if (t.durationDays <= 1) return "Tagesfahrt";
-  return t.durationNights > 0 ? `${t.durationDays} Tage · ${t.durationNights} Nächte` : `${t.durationDays} Tage`;
-}
-
 function depDays(d: TripDeparture) {
   if (!d.returnAt) return null;
   const a = new Date(d.departAt.toLocaleDateString("en-CA", { timeZone: BUSINESS_TZ }));
