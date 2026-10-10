@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { db } from "@/server/db/client";
 import { listPublishedTrips } from "@/server/catalog/trips";
-import { TripCard } from "@/components/trip/trip-card";
+import { TripResult } from "@/components/trip/trip-result";
 import { SplitText } from "@/components/site/split-text";
 import { KiImage } from "@/components/site/ki-image";
 import "@/styles/trip.css";
@@ -37,9 +37,9 @@ export default async function WeekendTripsPage() {
           <p className="mono-label">Ziele</p>
           <SplitText as="h2" id="w-trips" text="Vier Städte, ein Wochenende." />
         </div>
-        <div className="tgrid">
+        <div className="tresults">
           {trips.map((t) => (
-            <TripCard key={t.slug} t={t} />
+            <TripResult key={t.slug} t={t} />
           ))}
         </div>
       </section>

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { db } from "@/server/db/client";
 import { listPublishedTrips } from "@/server/catalog/trips";
-import { TripCard } from "@/components/trip/trip-card";
+import { TripResult } from "@/components/trip/trip-result";
 import { SplitText } from "@/components/site/split-text";
 import { KiImage } from "@/components/site/ki-image";
 import { COMPANY, LEGAL_LINKS } from "@/content/company";
@@ -58,9 +58,9 @@ export default async function PauschalreisenPage() {
           <p data-reveal="up">Jede Reise mit Busanreise ab Norddeutschland. Termine, Preise und freie Plätze sehen Sie auf der jeweiligen Reiseseite.</p>
         </div>
         {trips.length ? (
-          <div className="tgrid">
+          <div className="tresults">
             {trips.map((t) => (
-              <TripCard key={t.slug} t={t} />
+              <TripResult key={t.slug} t={t} />
             ))}
           </div>
         ) : (

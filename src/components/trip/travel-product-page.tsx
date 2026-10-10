@@ -9,8 +9,10 @@ import { BookingCard, type BookingCardProps } from "./booking-card";
 import { PickDepartureButton, SectionNav } from "./trip-interactions";
 import type { Guide } from "@/server/catalog/destinations";
 import { DestinationSection } from "@/components/destination/destination-section";
+import { CatIcon } from "@/components/destination/explorer";
 
 const dLong = new Intl.DateTimeFormat("de-DE", { timeZone: BUSINESS_TZ, weekday: "short", day: "2-digit", month: "long", year: "numeric" });
+const dShort = new Intl.DateTimeFormat("de-DE", { timeZone: BUSINESS_TZ, weekday: "short", day: "2-digit", month: "2-digit", year: "numeric" });
 const tFmt = new Intl.DateTimeFormat("de-DE", { timeZone: BUSINESS_TZ, hour: "2-digit", minute: "2-digit" });
 const country = new Intl.DisplayNames("de", { type: "region" });
 
@@ -119,6 +121,7 @@ export function TravelProductPage({ t, path, breadcrumb, guide }: { t: TripDetai
   const type = TYPE[t.productType] ?? TYPE.PACKAGE_TOUR!;
   const bookable = t.state === "BOOKABLE";
   const firstBookable = t.departures.find((d) => d.state === "BOOKABLE") ?? t.departures[0];
+  const glanceDep = t.departures.find((d) => d.state === "BOOKABLE") ?? null;
   const cities = [...new Set((firstBookable?.stops.map((s) => s.city) ?? []).concat(t.pickups.map((p) => p.city)))];
   const tel = COMPANY.phone.replace(/\s/g, "");
   const isPackage = t.productType === "PACKAGE_TOUR";
@@ -166,6 +169,7 @@ export function TravelProductPage({ t, path, breadcrumb, guide }: { t: TripDetai
   faqs.push({ q: "Kann ich die Reise als Gruppe buchen?", a: "Ja. Für Gruppen planen wir die Fahrt auf Wunsch zu einem eigenen Termin – senden Sie uns dazu eine Gruppenanfrage." });
 
   const nav = [
+    { id: "ueberblick", label: "Überblick" },
     { id: "termine", label: "Termine" },
     ...(firstBookable && firstBookable.fares.length > 1 ? [{ id: "tarife", label: "Tarife" }] : []),
     ...(t.included.length || t.excluded.length || t.optionalServices.length ? [{ id: "leistungen", label: "Leistungen" }] : []),
@@ -236,34 +240,6 @@ export function TravelProductPage({ t, path, breadcrumb, guide }: { t: TripDetai
           </p>
           <h1 className="tp-title">{t.title}</h1>
           <p className="tp-lead">{t.summary}</p>
-          <ul className="tp-facts">
-            <li>
-              <Icon name="pin" />
-              {t.destination}, {country.of(t.countryCode)}
-            </li>
-            <li>
-              <Icon name="clock" />
-              {durationLabel(t)}
-            </li>
-            <li>
-              <Icon name="bus" />
-              Anreise im Reisebus
-            </li>
-            {cities.length ? (
-              <li>
-                <Icon name="route" />
-                ab {cities.join(", ")}
-              </li>
-            ) : null}
-            <li>
-              <Icon name="cal" />
-              {bookable
-                ? `${t.departures.filter((d) => d.state === "BOOKABLE").length} ${t.departures.filter((d) => d.state === "BOOKABLE").length === 1 ? "Termin" : "Termine"} buchbar`
-                : t.state === "SOLD_OUT"
-                  ? "Aktuelle Termine ausgebucht"
-                  : "Neue Termine in Planung"}
-            </li>
-          </ul>
         </header>
       </div>
 
@@ -279,15 +255,95 @@ export function TravelProductPage({ t, path, breadcrumb, guide }: { t: TripDetai
         )}
       </div>
 
+      <div className="shell">
+        <dl className="tglance" aria-label="Die Reise auf einen Blick">
+          <div>
+            <dt>
+              <Icon name="bus" />
+              Reiseart
+            </dt>
+            <dd>
+              <strong>{type.short}</strong>
+              <span>{isPackage ? "Fahrt & Aufenthalt" : "Busfahrt, Unterkunft optional"}</span>
+            </dd>
+          </div>
+          <div>
+            <dt>
+              <Icon name="clock" />
+              Dauer
+            </dt>
+            <dd>
+              <strong>{t.durationDays <= 1 ? "1 Tag" : `${t.durationDays} Tage`}</strong>
+              <span>{t.durationNights > 0 ? `${t.durationNights} Nächte` : "inkl. An- und Abreise"}</span>
+            </dd>
+          </div>
+          <div>
+            <dt>
+              <Icon name="cal" />
+              Nächste Abfahrt
+            </dt>
+            <dd>
+              {glanceDep ? (
+                <>
+                  <strong>{dShort.format(glanceDep.departAt)}</strong>
+                  <span>{glanceDep.stops[0] ? `ab ${tFmt.format(glanceDep.stops[0].plannedAt)} Uhr in ${glanceDep.stops[0].city}` : "Zeit beim Termin"}</span>
+                </>
+              ) : (
+                <>
+                  <strong>{t.state === "SOLD_OUT" ? "ausgebucht" : "in Planung"}</strong>
+                  <span>Vormerken möglich</span>
+                </>
+              )}
+            </dd>
+          </div>
+          <div className="tglance__wide">
+            <dt>
+              <Icon name="route" />
+              {glanceDep ? "Zustiege & Abfahrtszeiten" : "Zustiege (Richtzeiten)"}
+            </dt>
+            <dd>
+              <ul className="tglance__stops">
+                {(glanceDep
+                  ? glanceDep.stops.map((x) => ({ k: x.id, time: tFmt.format(x.plannedAt), city: x.city }))
+                  : t.pickups.map((x) => ({ k: x.name, time: x.localTime, city: x.city }))
+                ).map((x) => (
+                  <li key={x.k}>
+                    <span className="tabular">{x.time ?? "–"}</span> {x.city}
+                  </li>
+                ))}
+              </ul>
+            </dd>
+          </div>
+          <div>
+            <dt>
+              <Icon name="swap" />
+              Rückkehr
+            </dt>
+            <dd>
+              <strong>{glanceDep?.returnAt ? dShort.format(glanceDep.returnAt) : "je Termin"}</strong>
+              <span>{glanceDep?.returnAt ? "laut Reiseplan" : "steht beim Termin"}</span>
+            </dd>
+          </div>
+          <div className="tglance__price">
+            <dt>
+              <Icon name="card" />
+              Preis
+            </dt>
+            <dd>
+              <strong className="tabular">{t.fromPriceCents !== null ? `ab ${formatEur(t.fromPriceCents)}` : "je Termin"}</strong>
+              <span>{t.fromPriceCents !== null ? "p. P. inkl. Zustieg" : "mit dem Termin"}</span>
+            </dd>
+          </div>
+        </dl>
+      </div>
+
       <div className="shell tp-layout">
         <div className="tp-main">
           <SectionNav items={nav} />
 
-          {t.description.length || t.highlights.length ? (
-            <section className="tp-sec tp-about" aria-labelledby="tp-about">
-              <h2 id="tp-about" className="sr-only">
-                Über die Reise
-              </h2>
+          <section id="ueberblick" className="tp-sec tp-about" aria-labelledby="h-ueberblick">
+            <h2 id="h-ueberblick">Ihre Reise im Überblick</h2>
+            {t.description.length ? (
               <div className="prose">
                 {t.description.map((b, i) =>
                   b.type === "p" ? (
@@ -303,15 +359,79 @@ export function TravelProductPage({ t, path, breadcrumb, guide }: { t: TripDetai
                   ),
                 )}
               </div>
-              {t.highlights.length ? (
-                <ul className="tp-tags" aria-label="Schwerpunkte">
-                  {t.highlights.map((h) => (
-                    <li key={h}>{h}</li>
-                  ))}
+            ) : (
+              <p className="tp-lead">{t.summary}</p>
+            )}
+            {t.highlights.length ? (
+              <ul className="tp-tags" aria-label="Schwerpunkte">
+                {t.highlights.map((h) => (
+                  <li key={h}>{h}</li>
+                ))}
+              </ul>
+            ) : null}
+
+            <ol className="tflow" aria-label="So läuft die Reise">
+              <li>
+                <span className="tflow__step">1</span>
+                <div>
+                  <strong>Abfahrt</strong>
+                  <p>
+                    {glanceDep
+                      ? `${dLong.format(glanceDep.departAt)} – ${glanceDep.stops.map((x) => `${x.city} ${tFmt.format(x.plannedAt)} Uhr`).join(", ")}.`
+                      : t.pickups.length
+                        ? `Zustieg in ${t.pickups.map((x) => (x.localTime ? `${x.city} (ca. ${x.localTime} Uhr)` : x.city)).join(", ")}. Genaue Zeiten stehen beim Termin.`
+                        : "Zustiege und Zeiten stehen beim Termin."}
+                  </p>
+                </div>
+              </li>
+              <li>
+                <span className="tflow__step">2</span>
+                <div>
+                  <strong>{isPackage ? `Aufenthalt in ${t.destination}` : `Zeit in ${t.destination}`}</strong>
+                  <p>
+                    {t.hotelName
+                      ? `Unterkunft: ${t.hotelName}${t.hotelAddress ? `, ${t.hotelAddress}` : ""}.`
+                      : isPackage
+                        ? "Die Unterkunft wird mit dem Termin veröffentlicht."
+                        : "Gebucht wird die Busfahrt – eine Unterkunft wählen Sie selbst."}
+                    {guide?.pois.some((x) => x.isHighlight) ? " Ideen für vor Ort finden Sie unten unter „Umgebung“." : ""}
+                  </p>
+                </div>
+              </li>
+              <li>
+                <span className="tflow__step">3</span>
+                <div>
+                  <strong>Rückfahrt</strong>
+                  <p>{glanceDep?.returnAt ? `${dLong.format(glanceDep.returnAt)} – zurück zu Ihrem Zustieg.` : "Rückfahrt zu Ihrem Zustieg; das Datum steht beim Termin."}</p>
+                </div>
+              </li>
+            </ol>
+
+            {guide && guide.pois.some((x) => x.isHighlight) ? (
+              <div className="texpect">
+                <h3>Das erwartet Sie in {guide.name}</h3>
+                <ul>
+                  {guide.pois
+                    .filter((x) => x.isHighlight)
+                    .slice(0, 3)
+                    .map((x) => (
+                      <li key={x.id}>
+                        <span className="texpect__icon">
+                          <CatIcon cat={x.category} size={20} />
+                        </span>
+                        <div>
+                          <strong>{x.name}</strong>
+                          <span>{x.highlightText ?? x.description}</span>
+                        </div>
+                      </li>
+                    ))}
                 </ul>
-              ) : null}
-            </section>
-          ) : null}
+                <a href="#umgebung" className="texpect__more">
+                  Alle Orte auf der Karte ansehen →
+                </a>
+              </div>
+            ) : null}
+          </section>
 
           <section id="termine" className="tp-sec" aria-labelledby="h-termine">
             <h2 id="h-termine">Termine &amp; Preise</h2>
