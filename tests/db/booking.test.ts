@@ -204,3 +204,23 @@ describe("stripe webhook", () => {
     expect((await db.tripDeparture.findUniqueOrThrow({ where: { id: dep.id } })).heldCount).toBe(0);
   });
 });
+
+describe("trip admin guards", () => {
+  it("refuses a capacity below sold and held seats", async () => {
+    const { setCapacity, TripAdminError } = await import("@/server/trips/admin");
+    const { dep } = await seed({ capacity: 5 });
+    await db.tripDeparture.update({ where: { id: dep.id }, data: { soldCount: 3, heldCount: 1 } });
+    const user = await db.user.create({ data: { email: `adm-${Date.now()}@example.org`, displayName: "Test" } });
+    await expect(setCapacity(db, user, dep.id, 3)).rejects.toThrow(TripAdminError);
+    await setCapacity(db, user, dep.id, 4);
+    expect((await db.tripDeparture.findUniqueOrThrow({ where: { id: dep.id } })).capacity).toBe(4);
+  });
+
+  it("parses German price input into cents", async () => {
+    const { parseEuro } = await import("@/server/trips/admin");
+    expect(parseEuro("499")).toBe(49900);
+    expect(parseEuro("1.299,50 €")).toBe(129950);
+    expect(parseEuro("19,9")).toBe(1990);
+    expect(() => parseEuro("abc")).toThrow();
+  });
+});

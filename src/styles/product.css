@@ -1696,3 +1696,255 @@
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+/* ── header with action box ─────────────────────────────────────────── */
+.tp-head {
+  grid-template-columns: minmax(0, 1fr) 330px;
+  align-items: center;
+  gap: 1.25rem 2.5rem;
+  max-inline-size: none;
+}
+.tp-head__main {
+  display: grid;
+  gap: 0.85rem;
+  min-inline-size: 0;
+}
+.tp-assure {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 1.1rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.tp-assure li {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: var(--step--1);
+  font-weight: 600;
+  color: var(--fg);
+}
+.tp-assure .ico {
+  inline-size: 18px;
+  block-size: 18px;
+  color: var(--brand-deep);
+}
+.tp-acts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+.tp-act {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-block-size: 40px;
+  padding: 0.4rem 0.9rem;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-pill);
+  background: #fff;
+  font: inherit;
+  font-size: var(--step--1);
+  font-weight: 650;
+  color: var(--fg);
+  text-decoration: none;
+  cursor: pointer;
+  transition: border-color var(--dur-sm), color var(--dur-sm), background-color var(--dur-sm);
+}
+.tp-act:hover {
+  border-color: var(--brand-button);
+  color: var(--brand-deep);
+  background: color-mix(in oklab, var(--brand) 6%, #fff);
+}
+.tp-act .ico,
+.tp-act svg {
+  inline-size: 17px;
+  block-size: 17px;
+  color: var(--brand-deep);
+}
+.tp-headbox {
+  display: grid;
+  gap: 0.35rem;
+  padding: 1.25rem 1.3rem 1.1rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: linear-gradient(180deg, color-mix(in oklab, var(--brand) 7%, #fff), #fff 60%);
+  box-shadow: 0 24px 50px -36px rgb(5 20 12 / 0.5);
+  animation: tp-rise 700ms 160ms var(--ease-out-expo) both;
+}
+.tp-headbox__label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--fg-subtle);
+}
+.tp-headbox__price {
+  display: flex;
+  align-items: baseline;
+  gap: 0.35rem;
+}
+.tp-headbox__price small {
+  font-size: var(--step--1);
+  color: var(--fg-muted);
+}
+.tp-headbox__price strong {
+  font-size: var(--step-4);
+  font-weight: 750;
+  letter-spacing: -0.03em;
+  line-height: 1;
+}
+.tp-headbox__note {
+  margin-block-end: 0.5rem;
+  font-size: 0.8rem;
+  color: var(--fg-muted);
+}
+.tp-headbox .btn {
+  inline-size: 100%;
+  justify-content: center;
+}
+.tp-headbox__alt {
+  margin-block-start: 0.15rem;
+}
+.tp-headbox__call {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-block-start: 0.5rem;
+  padding-block-start: 0.75rem;
+  border-block-start: 1px solid var(--line);
+  color: var(--fg);
+  text-decoration: none;
+  font-size: var(--step--1);
+}
+.tp-headbox__call span {
+  display: grid;
+}
+.tp-headbox__call small {
+  color: var(--fg-subtle);
+}
+.tp-headbox__call .ico {
+  inline-size: 34px;
+  block-size: 34px;
+  padding: 7px;
+  border-radius: 50%;
+  background: color-mix(in oklab, var(--brand) 12%, #fff);
+  color: var(--brand-deep);
+}
+
+/* ── advantages ─────────────────────────────────────────────────────── */
+.tadv {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr));
+  gap: 0.75rem;
+  margin: 1rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+.tadv li {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-rows: auto auto;
+  column-gap: 0.7rem;
+  align-items: center;
+  padding: 0.85rem 1rem;
+  border-radius: var(--radius);
+  background: var(--bg-subtle);
+  border: 1px solid var(--line);
+}
+.tadv__icon {
+  grid-row: span 2;
+  display: grid;
+  place-items: center;
+  inline-size: 40px;
+  block-size: 40px;
+  border-radius: 50%;
+  background: #fff;
+  border: 1.5px solid color-mix(in oklab, var(--brand) 40%, var(--line));
+  color: var(--brand-deep);
+}
+.tadv strong {
+  font-size: var(--step--1);
+}
+.tadv li > span:last-child {
+  font-size: 0.76rem;
+  line-height: 1.4;
+  color: var(--fg-muted);
+}
+
+/* ── booking card trust ─────────────────────────────────────────────── */
+.tbk__trust {
+  display: grid;
+  gap: 0.35rem;
+  margin: 0;
+  padding: 0.9rem 1.35rem 1.1rem;
+  border-block-start: 1px solid var(--line);
+  background: var(--bg-subtle);
+  list-style: none;
+  font-size: 0.8rem;
+  color: var(--fg-muted);
+}
+.tbk__trust li {
+  position: relative;
+  padding-inline-start: 1.3rem;
+}
+.tbk__trust li::before {
+  content: "";
+  position: absolute;
+  inset: 0.3em auto auto 0;
+  inline-size: 0.85em;
+  block-size: 0.85em;
+  background: var(--ok);
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='m5 12.5 4.5 4.5L19 7.5' fill='none' stroke='black' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E") center / contain no-repeat;
+}
+.tbk__trust a {
+  color: var(--fg);
+  text-decoration: none;
+}
+
+/* ── contact block ──────────────────────────────────────────────────── */
+.tcontact__card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 1.25rem 2rem;
+  padding: clamp(1.25rem, 1rem + 1vw, 1.75rem);
+  border-radius: var(--radius-lg);
+  background: radial-gradient(120% 140% at 100% 0%, color-mix(in oklab, var(--brand) 14%, #fff), #fff 60%);
+  border: 1px solid color-mix(in oklab, var(--brand) 22%, var(--line));
+}
+.tcontact__kicker {
+  margin: 0 0 0.3rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--brand-deep);
+}
+.tcontact h2 {
+  margin: 0 0 0.4rem;
+}
+.tcontact p {
+  margin: 0;
+  color: var(--fg-muted);
+}
+.tcontact__acts {
+  display: grid;
+  gap: 0.5rem;
+}
+.tcontact__acts .btn {
+  justify-content: center;
+}
+
+@media (max-width: 1023px) {
+  .tp-head {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .tp-headbox {
+    display: none;
+  }
+  .tcontact__card {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

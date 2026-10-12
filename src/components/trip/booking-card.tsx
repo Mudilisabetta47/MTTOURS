@@ -3,7 +3,7 @@
 import { useActionState, useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { formatEur } from "@/lib/money";
-import { LEGAL_LINKS } from "@/content/company";
+import { COMPANY, LEGAL_LINKS } from "@/content/company";
 import { quoteAction, type QuoteResult } from "@/app/(site)/buchung/quote-action";
 import { submitTripInterest, type InterestState } from "./interest-actions";
 import type { TripState } from "@/server/catalog/trips";
@@ -559,6 +559,26 @@ export function BookingCard(p: BookingCardProps) {
             </button>
           </header>
           {bookable ? <Configurator p={p} onBook={() => setSheet(false)} /> : <InterestList p={p} />}
+          <ul className="tbk__trust" aria-label="Sicher buchen">
+            {bookable ? (
+              <>
+                <li>Sichere Online-Zahlung über Stripe</li>
+                <li>Bestätigung und Ticket mit QR-Code per E-Mail</li>
+              </>
+            ) : (
+              <>
+                <li>Unverbindlich und kostenlos</li>
+                <li>Sie erfahren neue Termine zuerst</li>
+              </>
+            )}
+            <li>
+              Fragen?{" "}
+              <a href={`tel:${COMPANY.phone.replace(/\s/g, "")}`}>
+                <strong>{COMPANY.phoneDisplay}</strong>
+              </a>{" "}
+              · {COMPANY.hours}
+            </li>
+          </ul>
         </div>
       </aside>
 

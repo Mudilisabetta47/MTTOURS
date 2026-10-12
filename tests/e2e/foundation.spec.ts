@@ -56,10 +56,12 @@ test("owner sees real (empty) dashboard figures and system modules", async ({ pa
   // computed from the seeded test departures – a real figure, never a placeholder number
   await expect(page.getByText(/\d+ von \d+ Plätzen/)).toBeVisible();
   const nav = page.getByRole("complementary", { name: "Hauptnavigation" });
-  await expect(nav.getByRole("link", { name: "Mitarbeiter" })).toBeVisible();
-  await expect(nav.getByRole("link", { name: "Protokoll" })).toBeVisible();
+  // grouped like the previous metours admin
+  await expect(nav.getByRole("link", { name: "Benutzer & Rollen" })).toBeVisible();
+  await expect(nav.getByRole("link", { name: "Audit-Log" })).toBeVisible();
+  await expect(nav.getByRole("link", { name: "Reise-Buchungen" })).toBeVisible();
+  await expect(nav.getByRole("link", { name: "Reisen", exact: true })).toBeVisible();
   // unbuilt modules are not shown as dead links
-  await expect(nav.getByRole("link", { name: "Buchungen" })).toBeVisible();
   await expect(nav.getByRole("link", { name: "Destinationen" })).toBeVisible();
   await expect(nav.getByRole("link", { name: "Tickets" })).toHaveCount(0);
   await page.screenshot({ path: `test-results/screens/dashboard-${info.project.name}.png`, fullPage: true });

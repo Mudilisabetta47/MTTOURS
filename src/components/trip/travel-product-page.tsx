@@ -7,6 +7,7 @@ import { BUSINESS_TZ } from "@/lib/time";
 import { TripGallery } from "./gallery";
 import { BookingCard, type BookingCardProps } from "./booking-card";
 import { PickDepartureButton, SectionNav } from "./trip-interactions";
+import { OpenBookingButton, ShareButton } from "./trip-actions";
 import type { Guide } from "@/server/catalog/destinations";
 import { DestinationSection } from "@/components/destination/destination-section";
 import { CatIcon } from "@/components/destination/explorer";
@@ -33,7 +34,7 @@ export function fareFeatures(c: FareConditions): string[] {
   return out;
 }
 
-function Icon({ name }: { name: "pin" | "clock" | "bus" | "route" | "cal" | "check" | "plus" | "x" | "shield" | "card" | "doc" | "swap" | "phone" | "hotel" }) {
+function Icon({ name }: { name: "pin" | "clock" | "bus" | "route" | "cal" | "check" | "plus" | "x" | "shield" | "card" | "doc" | "swap" | "phone" | "hotel" | "mail" | "users" | "ticket" }) {
   const d: Record<string, string> = {
     pin: "M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0 1 13 0C18.5 15.4 12 21 12 21Zm0-8.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Z",
     clock: "M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Zm0-13v4.5l3 2",
@@ -49,6 +50,9 @@ function Icon({ name }: { name: "pin" | "clock" | "bus" | "route" | "cal" | "che
     swap: "M7 7h11l-3-3M17 17H6l3 3",
     phone: "M5 4h3l2 5-2.5 1.5a11 11 0 0 0 6 6L15 14l5 2v3a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2",
     hotel: "M3 21V8l9-5 9 5v13M9 21v-6h6v6M8 11h.01M12 11h.01M16 11h.01",
+    mail: "M4 6h16v12H4zM4 7l8 6 8-6",
+    users: "M16 19v-1a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v1M9.5 10a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7ZM21 19v-1a4 4 0 0 0-3-3.9M15.5 3.2a3.5 3.5 0 0 1 0 6.6",
+    ticket: "M4 7a2 2 0 0 0 2-2h12a2 2 0 0 0 2 2v3a2 2 0 0 0 0 4v3a2 2 0 0 0-2 2H6a2 2 0 0 0-2-2v-3a2 2 0 0 0 0-4V7Zm9-2v14",
   };
   return (
     <svg className="ico" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
@@ -228,13 +232,77 @@ export function TravelProductPage({ t, path, breadcrumb, guide }: { t: TripDetai
         </nav>
 
         <header className="tp-head">
-          <p className="tp-kicker">
-            <span>{t.category ?? type.short}</span>
-            <span aria-hidden="true">·</span>
-            <span>{country.of(t.countryCode) ?? t.countryCode}</span>
-          </p>
-          <h1 className="tp-title">{t.title}</h1>
-          <p className="tp-lead">{t.summary}</p>
+          <div className="tp-head__main">
+            <p className="tp-kicker">
+              <span>{t.category ?? type.short}</span>
+              <span aria-hidden="true">·</span>
+              <span>{country.of(t.countryCode) ?? t.countryCode}</span>
+            </p>
+            <h1 className="tp-title">{t.title}</h1>
+            <p className="tp-lead">{t.summary}</p>
+            <ul className="tp-assure" aria-label="Das Wichtigste">
+              <li>
+                <Icon name="bus" />
+                Reisebus ab {cities.length ? cities.join(", ") : "Norddeutschland"}
+              </li>
+              <li>
+                <Icon name="doc" />
+                {isPackage ? "Reiseveranstalter" : "Busunternehmen"} aus {COMPANY.city}
+              </li>
+              {t.insolvencyProtected ? (
+                <li>
+                  <Icon name="shield" />
+                  Mit Sicherungsschein
+                </li>
+              ) : null}
+              <li>
+                <Icon name="phone" />
+                Persönliche Beratung
+              </li>
+            </ul>
+            <div className="tp-acts">
+              <ShareButton title={t.title} />
+              <a className="tp-act" href={`mailto:${COMPANY.email}?subject=${encodeURIComponent(`Frage zur Reise: ${t.title}`)}`}>
+                <Icon name="mail" />
+                Frage per E-Mail
+              </a>
+              <a className="tp-act" href={`tel:${tel}`}>
+                <Icon name="phone" />
+                {COMPANY.phoneDisplay}
+              </a>
+            </div>
+          </div>
+          <aside className="tp-headbox" aria-label="Preis und Buchung">
+            {bookable && t.fromPriceCents !== null ? (
+              <>
+                <span className="tp-headbox__label">Preis pro Person</span>
+                <span className="tp-headbox__price">
+                  <small>ab</small> <strong className="tabular">{formatEur(t.fromPriceCents)}</strong>
+                </span>
+                <span className="tp-headbox__note">inkl. Busfahrt und Zustieg</span>
+                <OpenBookingButton label="Jetzt buchen" />
+              </>
+            ) : (
+              <>
+                <span className="tp-headbox__label">{t.state === "SOLD_OUT" ? "Aktuelle Termine" : "Termine"}</span>
+                <span className="tp-headbox__price">
+                  <strong>{t.state === "SOLD_OUT" ? "ausgebucht" : t.lockReason ? "Buchung in Kürze" : "in Planung"}</strong>
+                </span>
+                <span className="tp-headbox__note">Unverbindlich vormerken und als Erste erfahren</span>
+                <OpenBookingButton label="Termin vormerken" />
+              </>
+            )}
+            <a className="btn btn--ghost tp-headbox__alt" href="#termine">
+              Termine &amp; Preise
+            </a>
+            <a className="tp-headbox__call" href={`tel:${tel}`}>
+              <Icon name="phone" />
+              <span>
+                Beratung: <strong>{COMPANY.phoneDisplay}</strong>
+                <small>{COMPANY.hours}</small>
+              </span>
+            </a>
+          </aside>
         </header>
       </div>
 
@@ -330,6 +398,47 @@ export function TravelProductPage({ t, path, breadcrumb, guide }: { t: TripDetai
             </dd>
           </div>
         </dl>
+        <ul className="tadv" aria-label="Ihre Vorteile bei METROPOL TOURS">
+          <li>
+            <span className="tadv__icon">
+              <Icon name="route" />
+            </span>
+            <strong>Zustieg in Ihrer Nähe</strong>
+            <span>{cities.length ? `Abfahrt ab ${cities.join(", ")}` : "Abfahrt in Norddeutschland"}</span>
+          </li>
+          <li>
+            <span className="tadv__icon">
+              <Icon name="users" />
+            </span>
+            <strong>Persönlich für Sie da</strong>
+            <span>
+              Telefonisch {COMPANY.hours}, Anfragen per E-Mail
+            </span>
+          </li>
+          <li>
+            <span className="tadv__icon">
+              <Icon name="card" />
+            </span>
+            <strong>Sicher online bezahlen</strong>
+            <span>Zahlung über Stripe, Buchung erst nach bestätigtem Zahlungseingang</span>
+          </li>
+          <li>
+            <span className="tadv__icon">
+              <Icon name="ticket" />
+            </span>
+            <strong>Tickets sofort</strong>
+            <span>Bestätigung und Ticket mit QR-Code je Reisendem</span>
+          </li>
+          {t.insolvencyProtected ? (
+            <li>
+              <span className="tadv__icon">
+                <Icon name="shield" />
+              </span>
+              <strong>Abgesichert</strong>
+              <span>Insolvenzschutz mit Sicherungsschein nach § 651r BGB</span>
+            </li>
+          ) : null}
+        </ul>
       </div>
 
       <div className="shell tp-layout">
@@ -674,6 +783,29 @@ export function TravelProductPage({ t, path, breadcrumb, guide }: { t: TripDetai
                 </dd>
               </div>
             </dl>
+          </section>
+
+          <section className="tp-sec tcontact" aria-labelledby="h-kontakt">
+            <div className="tcontact__card">
+              <div>
+                <p className="tcontact__kicker">Persönliche Beratung</p>
+                <h2 id="h-kontakt">Fragen zu dieser Reise?</h2>
+                <p>
+                  Wir beraten Sie gern zu Terminen, Zustiegen und Gruppenreisen – telefonisch {COMPANY.hours} oder per E-Mail.
+                </p>
+              </div>
+              <div className="tcontact__acts">
+                <a className="btn btn--brand btn--arrow" href={`tel:${tel}`}>
+                  {COMPANY.phoneDisplay} anrufen
+                </a>
+                <a className="btn btn--ghost" href={`mailto:${COMPANY.email}?subject=${encodeURIComponent(`Frage zur Reise: ${t.title}`)}`}>
+                  E-Mail schreiben
+                </a>
+                <Link className="btn btn--ghost" href={`/bus-mieten?anlass=gruppenreise&ziel=${encodeURIComponent(t.destination)}#anfrage` as never}>
+                  Als Gruppe anfragen
+                </Link>
+              </div>
+            </div>
           </section>
 
           <section id="fragen" className="tp-sec" aria-labelledby="h-fragen">
