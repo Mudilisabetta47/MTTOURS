@@ -4,9 +4,11 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { landingBySlug, landingSlugs } from "@/content/landing";
 import { COMPANY } from "@/content/company";
-import { SplitText } from "@/components/site/split-text";
+import { LIcon, iconFor } from "@/components/landing/landing-icons";
 import { JsonLd } from "@/components/site/json-ld";
 import "@/styles/trip.css";
+import "@/styles/product.css";
+import "@/styles/landing.css";
 
 export const dynamicParams = false;
 
@@ -64,137 +66,230 @@ export default async function LandingPage({ params }: Props) {
     ],
   };
 
+  const imgs = imagesFor(c.heroImage, c.slug);
+  const [main, side1, side2] = imgs;
+
   return (
     <>
       <JsonLd data={jsonLd} />
-      <header className="page-hero page-hero--photo">
-        <div className="ki">
-          <Image src="/media/metropol-man-lions-coach.jpg" alt="Reisebus von METROPOL TOURS (echtes Foto)" fill priority sizes="100vw" quality={80} style={{ objectFit: "cover", objectPosition: "62% 55%" }} />
-        </div>
-        <div className="shell" style={{ display: "grid", gap: "1.2rem" }}>
-          <nav aria-label="Brotkrumen" className="crumbs">
-            <Link href="/">Start</Link> <span aria-hidden="true">/</span> <Link href="/bus-mieten">Bus mieten</Link> <span aria-hidden="true">/</span>{" "}
-            <span aria-current="page">{c.h1}</span>
-          </nav>
-          <p className="mono-label" style={{ color: "var(--brand)" }}>
-            {c.heroKicker}
-          </p>
-          <SplitText as="h1" text={c.h1} className="thero__title" />
-          {c.heroText ? (
-            <p className="thero__lead" data-reveal="up">
-              {c.heroText}
+      <header className="lhero">
+        <div className="shell lhero__grid">
+          <div className="lhero__text">
+            <nav aria-label="Brotkrumen" className="tp-crumbs">
+              <Link href="/">Start</Link>
+              <span aria-hidden="true">/</span>
+              <Link href="/bus-mieten">Bus mieten</Link>
+              <span aria-hidden="true">/</span>
+              <span aria-current="page">{c.h1}</span>
+            </nav>
+            <p className="lhero__kicker">
+              <LIcon name="bus" size={18} />
+              {c.heroKicker}
             </p>
-          ) : null}
-          <ul className="chips chips--dark" aria-label="Auf einen Blick">
-            {c.heroFacts.map((f) => (
-              <li key={f}>{f}</li>
-            ))}
-          </ul>
-          <div className="hero__ctas">
-            <Link className="btn btn--brand btn--lg btn--arrow" href={inquiryHref as never} data-magnetic="0.25">
-              Angebot anfragen
-            </Link>
-            <a className="btn btn--ghost-light btn--lg" href={`tel:${tel}`}>
-              {COMPANY.phoneDisplay}
-            </a>
+            <h1 className="lhero__title">{c.h1}</h1>
+            {c.heroText ? <p className="lhero__lead">{c.heroText}</p> : null}
+            <ul className="lhero__facts" aria-label="Auf einen Blick">
+              {c.heroFacts.map((f) => (
+                <li key={f}>
+                  <span className="lhero__fact-icon">
+                    <LIcon name={iconFor(f, "check")} size={18} />
+                  </span>
+                  {f}
+                </li>
+              ))}
+            </ul>
+            <div className="lhero__ctas">
+              <Link className="btn btn--brand btn--lg btn--arrow" href={inquiryHref as never} data-magnetic="0.25">
+                Angebot anfragen
+              </Link>
+              <a className="btn btn--ghost btn--lg lhero__call" href={`tel:${tel}`}>
+                <LIcon name="phone" size={20} />
+                {COMPANY.phoneDisplay}
+              </a>
+            </div>
+            <p className="lhero__note">
+              <LIcon name="clock" size={16} /> Persönlich erreichbar {COMPANY.hours} · Antwort mit schriftlichem Angebot
+            </p>
+          </div>
+          <div className="lhero__collage" aria-hidden={false}>
+            <figure className="lhero__img lhero__img--main">
+              <Image src={main.src} alt={main.alt} fill priority sizes="(max-width: 900px) 100vw, 45vw" quality={78} style={{ objectFit: "cover", objectPosition: main.pos }} />
+              <figcaption className="lhero__tag">{main.ki ? "KI-generiert" : "Echtes Foto"}</figcaption>
+            </figure>
+            <figure className="lhero__img lhero__img--a">
+              <Image src={side1.src} alt={side1.alt} fill sizes="22vw" quality={72} style={{ objectFit: "cover", objectPosition: side1.pos }} />
+              <figcaption className="lhero__tag">{side1.ki ? "KI" : "Foto"}</figcaption>
+            </figure>
+            <figure className="lhero__img lhero__img--b">
+              <Image src={side2.src} alt={side2.alt} fill sizes="22vw" quality={72} style={{ objectFit: "cover", objectPosition: side2.pos }} />
+              <figcaption className="lhero__tag">{side2.ki ? "KI" : "Foto"}</figcaption>
+            </figure>
+            <div className="lhero__float lhero__float--1">
+              <span className="lhero__float-icon">
+                <LIcon name="wheel" />
+              </span>
+              <span>
+                <strong>Inklusive Fahrer</strong>
+                <small>Bus mit erfahrenem Fahrpersonal</small>
+              </span>
+            </div>
+            <div className="lhero__float lhero__float--2">
+              <span className="lhero__float-icon">
+                <LIcon name="doc" />
+              </span>
+              <span>
+                <strong>Schriftliches Angebot</strong>
+                <small>passend zu Ihrer Strecke</small>
+              </span>
+            </div>
           </div>
         </div>
       </header>
 
       {c.why.length ? (
-        <section className="sec shell" aria-labelledby="l-why">
-          <div className="sec-head">
-            <p className="mono-label">Warum Metropol Tours</p>
-            <SplitText as="h2" id="l-why" text="Worauf Sie sich verlassen können." />
+        <section className="sec shell lsec" aria-labelledby="l-why">
+          <div className="lhead">
+            <p className="lkicker">Warum METROPOL TOURS</p>
+            <h2 id="l-why">Worauf Sie sich verlassen können</h2>
           </div>
-          <ol className="steps4">
+          <ul className="lcards">
             {c.why.map((w, i) => (
-              <li key={w.title} data-reveal="up" style={{ "--rv-delay": `${i * 80}ms` } as React.CSSProperties}>
-                <span className="steps4__n">0{i + 1}</span>
+              <li key={w.title} className="lcard" data-reveal="up" style={{ "--rv-delay": `${i * 70}ms` } as React.CSSProperties}>
+                <span className="lcard__icon">
+                  <LIcon name={iconFor(w.title, (["shield", "users", "clock", "star"] as const)[i % 4])} size={26} />
+                </span>
                 <strong>{w.title}</strong>
                 <p>{w.text}</p>
               </li>
             ))}
-          </ol>
+          </ul>
         </section>
       ) : null}
 
       {c.sections.length ? (
-        <section className="sec shell landing-prose" aria-label="Informationen">
-          {c.sections.map((s) => (
-            <div key={s.h2} className="split2 landing-prose__row">
-              <h2>{s.h2}</h2>
-              <div className="prose">
-                {s.body.map((b) => (
-                  <p key={b.slice(0, 40)}>{b}</p>
-                ))}
-                {s.blocks?.map((b) => (
-                  <div key={b.h3}>
-                    <h3>{b.h3}</h3>
-                    <p>{b.text}</p>
+        <section className="sec shell lsec" aria-label="Informationen">
+          {c.sections.map((sec, i) => {
+            const img = imgs[(i + 1) % imgs.length]!;
+            return (
+              <div key={sec.h2} className="lrow" data-flip={i % 2 ? "true" : "false"}>
+                <div className="lrow__text">
+                  <span className="lrow__icon">
+                    <LIcon name={iconFor(sec.h2, "bus")} size={24} />
+                  </span>
+                  <h2>{sec.h2}</h2>
+                  <div className="prose">
+                    {sec.body.map((b) => (
+                      <p key={b.slice(0, 40)}>{b}</p>
+                    ))}
                   </div>
-                ))}
+                  {sec.blocks?.length ? (
+                    <ul className="lrow__blocks">
+                      {sec.blocks.map((b) => (
+                        <li key={b.h3}>
+                          <span className="lrow__check">
+                            <LIcon name={iconFor(b.h3, "check")} size={18} />
+                          </span>
+                          <div>
+                            <h3>{b.h3}</h3>
+                            <p>{b.text}</p>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : null}
+                </div>
+                <figure className="lrow__img" data-reveal="up">
+                  <Image src={img.src} alt={img.alt} fill sizes="(max-width: 900px) 100vw, 40vw" quality={74} style={{ objectFit: "cover", objectPosition: img.pos }} />
+                  <figcaption className="lhero__tag">{img.ki ? "KI-generiert" : "Echtes Foto"}</figcaption>
+                </figure>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </section>
       ) : null}
 
       {c.occasions.length ? (
-        <section className="sec shell" aria-labelledby="l-occ">
-          <div className="sec-head">
-            <p className="mono-label">Anlässe</p>
-            <h2 id="l-occ">Wofür Gruppen uns buchen</h2>
-          </div>
-          <div className="rental__grid">
-            {c.occasions.map((o) => (
-              <Link key={o.title} href={inquiryHref as never} className="rental__item">
-                <h3>
-                  {o.title} <span aria-hidden="true">→</span>
-                </h3>
-                <p>{o.text}</p>
-              </Link>
-            ))}
+        <section className="sec lsec lsec--tint" aria-labelledby="l-occ">
+          <div className="shell">
+            <div className="lhead">
+              <p className="lkicker">Anlässe</p>
+              <h2 id="l-occ">Wofür Gruppen uns buchen</h2>
+              <p>Ein Klick auf einen Anlass führt direkt zur Anfrage.</p>
+            </div>
+            <ul className="locc">
+              {c.occasions.map((o) => (
+                <li key={o.title}>
+                  <Link href={inquiryHref as never} className="locc__item">
+                    <span className="locc__icon">
+                      <LIcon name={iconFor(`${o.title} ${o.text}`, "bus")} size={28} />
+                    </span>
+                    <strong>{o.title}</strong>
+                    <span>{o.text}</span>
+                    <span className="locc__go" aria-hidden="true">
+                      Anfragen →
+                    </span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
           </div>
         </section>
       ) : null}
 
-      <section className="sec on-dark" aria-labelledby="l-process">
-        <div className="shell">
-          <div className="sec-head">
-            <p className="mono-label">Ablauf</p>
-            <h2 id="l-process">So läuft Ihre Anfrage</h2>
-          </div>
-          <ol className="steps4">
-            {c.process.map((p, i) => (
-              <li key={p.title}>
-                <span className="steps4__n">0{i + 1}</span>
-                <strong>{p.title.replace(/^\d+\.\s*/, "")}</strong>
-                <p>{p.text}</p>
-              </li>
-            ))}
-          </ol>
+      <section className="sec shell lsec" aria-labelledby="l-process">
+        <div className="lhead">
+          <p className="lkicker">Ablauf</p>
+          <h2 id="l-process">So einfach geht Ihre Anfrage</h2>
         </div>
+        <ol className="lsteps">
+          {c.process.map((pr, i) => (
+            <li key={pr.title} data-reveal="up" style={{ "--rv-delay": `${i * 80}ms` } as React.CSSProperties}>
+              <span className="lsteps__icon">
+                <LIcon name={(["send", "phone", "doc", "bus"] as const)[i % 4] ?? "bus"} size={26} />
+                <span className="lsteps__n">{i + 1}</span>
+              </span>
+              <strong>{pr.title.replace(/^\d+\.\s*/, "")}</strong>
+              <p>{pr.text}</p>
+            </li>
+          ))}
+        </ol>
       </section>
 
-      <section className="sec shell" aria-labelledby="l-area">
-        <div className="split2">
-          <div className="sec-head">
-            <p className="mono-label">Einsatzgebiet</p>
+      <section className="lstrip" aria-label="Eindrücke">
+        {imgs.slice(0, 3).map((im) => (
+          <figure key={im.src} className="lstrip__img">
+            <Image src={im.src} alt={im.alt} fill sizes="33vw" quality={70} style={{ objectFit: "cover", objectPosition: im.pos }} />
+            <figcaption className="lhero__tag">{im.ki ? "KI-generiert" : "Echtes Foto"}</figcaption>
+          </figure>
+        ))}
+      </section>
+
+      <section className="sec shell lsec" aria-labelledby="l-area">
+        <div className="larea">
+          <div>
+            <p className="lkicker">Einsatzgebiet</p>
             <h2 id="l-area">Wo wir fahren</h2>
-            {c.area.intro ? <p>{c.area.intro}</p> : null}
-            <ul className="chips">
+            {c.area.intro ? <p className="larea__intro">{c.area.intro}</p> : null}
+            <ul className="larea__cities">
               {c.area.cities.map((city) => (
-                <li key={city}>{city}</li>
+                <li key={city}>
+                  <LIcon name="pin" size={16} />
+                  {city}
+                </li>
               ))}
             </ul>
           </div>
           {c.advantages.length ? (
-            <div>
-              <h3 style={{ fontSize: "var(--step-2)", marginBlockEnd: "1rem" }}>Ihre Vorteile</h3>
-              <ul className="incl__list incl__list--yes">
+            <div className="ladv">
+              <h3>Ihre Vorteile</h3>
+              <ul>
                 {c.advantages.map((a) => (
-                  <li key={a}>{a}</li>
+                  <li key={a}>
+                    <span className="ladv__icon">
+                      <LIcon name="check" size={16} />
+                    </span>
+                    {a}
+                  </li>
                 ))}
               </ul>
             </div>
@@ -203,13 +298,18 @@ export default async function LandingPage({ params }: Props) {
       </section>
 
       {c.faqs.length ? (
-        <section className="sec shell" aria-labelledby="l-faq">
-          <div className="split2">
-            <div className="sec-head">
-              <p className="mono-label">Fragen</p>
+        <section className="sec shell lsec" aria-labelledby="l-faq">
+          <div className="lfaq">
+            <div>
+              <p className="lkicker">Fragen</p>
               <h2 id="l-faq">Häufige Fragen</h2>
+              <p>Ihre Frage ist nicht dabei? Rufen Sie uns an – wir helfen gern.</p>
+              <a className="btn btn--ghost lhero__call" href={`tel:${tel}`}>
+                <LIcon name="phone" size={18} />
+                {COMPANY.phoneDisplay}
+              </a>
             </div>
-            <div className="faq">
+            <div className="tfaq">
               {c.faqs.map((f) => (
                 <details key={f.q}>
                   <summary>{f.q}</summary>
@@ -222,39 +322,78 @@ export default async function LandingPage({ params }: Props) {
       ) : null}
 
       {c.links.length ? (
-        <section className="sec shell" aria-labelledby="l-links" style={{ paddingBlockStart: 0 }}>
-          <h2 id="l-links" className="tsub">
-            Weitere Seiten
+        <section className="sec shell lsec" aria-labelledby="l-links" style={{ paddingBlockStart: 0 }}>
+          <h2 id="l-links" className="lsub">
+            Das könnte Sie auch interessieren
           </h2>
-          <div className="links3">
+          <ul className="llinks">
             {c.links.map((l) => (
-              <Link key={l.path} href={l.path as never} className="links3__card">
-                <strong>{l.label}</strong>
-                <span>{l.text}</span>
-                <span aria-hidden="true" className="links3__go">
-                  →
-                </span>
-              </Link>
+              <li key={l.path}>
+                <Link href={l.path as never} className="llinks__card">
+                  <span className="llinks__icon">
+                    <LIcon name={iconFor(`${l.label} ${l.text}`, "bus")} size={22} />
+                  </span>
+                  <span>
+                    <strong>{l.label}</strong>
+                    <small>{l.text}</small>
+                  </span>
+                  <span aria-hidden="true" className="llinks__go">
+                    →
+                  </span>
+                </Link>
+              </li>
             ))}
-          </div>
+          </ul>
         </section>
       ) : null}
 
-      <section className="sec shell" aria-labelledby="l-cta" style={{ paddingBlockStart: 0 }}>
-        <div className="pmore__card pmore__card--green" style={{ minBlockSize: 0 }}>
-          <span className="mono-label">Anfrage</span>
-          <h2 id="l-cta">{c.ctaTitle.replace(/Festpreis/gi, "Angebot")}</h2>
-          <p>{c.ctaText}</p>
-          <div className="hero__ctas">
-            <Link className="btn btn--lg mega__cta-btn" href={inquiryHref as never}>
-              Angebot anfragen →
-            </Link>
-            <a className="btn btn--ghost-light btn--lg" href={`tel:${tel}`}>
-              {COMPANY.phoneDisplay}
-            </a>
+      <section className="sec shell lsec" aria-labelledby="l-cta" style={{ paddingBlockStart: 0 }}>
+        <div className="lcta">
+          <div className="lcta__text">
+            <p className="lkicker lkicker--light">Anfrage</p>
+            <h2 id="l-cta">{c.ctaTitle.replace(/Festpreis/gi, "Angebot")}</h2>
+            <p>{c.ctaText}</p>
+            <div className="lhero__ctas">
+              <Link className="btn btn--lg lcta__btn" href={inquiryHref as never}>
+                Angebot anfragen →
+              </Link>
+              <a className="btn btn--ghost-light btn--lg" href={`tel:${tel}`}>
+                {COMPANY.phoneDisplay}
+              </a>
+            </div>
           </div>
+          <figure className="lcta__img">
+            <Image src="/media/metropol-man-lions-coach.jpg" alt="Reisebus von METROPOL TOURS (echtes Foto)" fill sizes="(max-width: 900px) 100vw, 40vw" quality={74} style={{ objectFit: "cover", objectPosition: "62% 55%" }} />
+          </figure>
         </div>
       </section>
     </>
   );
+}
+
+type Img = { src: string; alt: string; ki: boolean; pos: string };
+const IMG: Record<string, Img> = {
+  real: { src: "/media/metropol-man-lions-coach.jpg", alt: "Reisebus von METROPOL TOURS in limettengrüner Lackierung", ki: false, pos: "62% 55%" },
+  kueste: { src: "/media/ki/slide-kueste.webp", alt: "Reisebus auf einer Küstenstraße am Meer", ki: true, pos: "62% 60%" },
+  nacht: { src: "/media/ki/slide-nacht.webp", alt: "Reisebus nachts auf einer Straße vor Bergen", ki: true, pos: "62% 55%" },
+  ankommen: { src: "/media/ki/slide-wir-sind-da.webp", alt: "Reisebus mit der Anzeige „Wir sind da!“ in der Dämmerung", ki: true, pos: "58% 55%" },
+  bergsee: { src: "/media/ki/slide-bergsee.webp", alt: "Bergsee mit Kirche auf einer kleinen Insel", ki: true, pos: "50% 60%" },
+  gruppe: { src: "/media/ki/hero-group-travel.jpg", alt: "Fröhliche Reisegruppe im Bus", ki: true, pos: "50% 45%" },
+  strand: { src: "/media/ki/hero-beach-swimming.jpg", alt: "Badebucht am Mittelmeer", ki: true, pos: "50% 55%" },
+  wochenende: { src: "/media/ki/slider-wochenendtrips.jpg", alt: "Städtereise am Wochenende", ki: true, pos: "50% 50%" },
+};
+const BY_KEY: Record<string, string[]> = {
+  busReal: ["real", "kueste", "gruppe"],
+  premiumBus: ["kueste", "real", "ankommen"],
+  business: ["nacht", "real", "ankommen"],
+  group: ["gruppe", "real", "bergsee"],
+  heroBus: ["ankommen", "real", "kueste"],
+  metropolHero: ["real", "kueste", "nacht"],
+  journey: ["bergsee", "real", "gruppe"],
+};
+/** Three different images per page; topic-based where the slug says more than the image key. */
+function imagesFor(key: string, slug: string): [Img, Img, Img] {
+  const topic = /schul|verein|gruppen|ausflug/.test(slug) ? ["gruppe", "real", "bergsee"] : /flughafen|shuttle/.test(slug) ? ["nacht", "real", "ankommen"] : null;
+  const keys = topic ?? BY_KEY[key] ?? BY_KEY.busReal!;
+  return keys.map((k) => IMG[k]!) as [Img, Img, Img];
 }

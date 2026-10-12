@@ -179,7 +179,8 @@ async function build(): Promise<Navigation> {
       {
         key: "about",
         label: "Über uns",
-        activePrefixes: ["/ueber-uns", "/fuhrpark", "/impressum"],
+        // Fuhrpark has its own top-level item – only one item may be active
+        activePrefixes: ["/ueber-uns", "/impressum"],
         columns: [
           {
             title: "Metropol Tours",
