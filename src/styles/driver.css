@@ -1,0 +1,125 @@
+/* Driver app: large touch targets, high contrast, works one-handed. */
+.drv {
+  display: grid;
+  gap: 1rem;
+  max-inline-size: 640px;
+  padding-block: 1.5rem 4rem;
+}
+.drv a {
+  color: var(--brand-deep);
+}
+.drv-head h1 {
+  margin: 0.4rem 0 0.2rem;
+  font-size: var(--step-3);
+  letter-spacing: -0.02em;
+}
+.drv-head p {
+  margin: 0;
+  color: var(--fg-muted);
+}
+.drv-pill {
+  display: inline-block;
+  padding: 0.2rem 0.7rem;
+  border-radius: var(--radius-pill);
+  background: var(--bg-muted);
+  font-size: var(--step--1);
+  font-weight: 700;
+}
+.drv-pill--in_progress {
+  background: var(--brand-button);
+  color: #fff;
+}
+.drv-track {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.9rem;
+  align-items: start;
+  padding: 1rem 1.1rem;
+  border-radius: var(--radius-lg);
+  border: 2px solid var(--line);
+  background: #fff;
+}
+.drv-track[data-kind="ok"] {
+  border-color: var(--brand-button);
+  background: color-mix(in oklab, var(--brand) 8%, #fff);
+}
+.drv-track[data-kind="denied"],
+.drv-track[data-kind="error"],
+.drv-track[data-kind="unavailable"] {
+  border-color: var(--danger);
+  background: var(--danger-bg);
+}
+.drv-track > div {
+  display: grid;
+  gap: 0.2rem;
+}
+.drv-track small {
+  color: var(--fg-muted);
+}
+.drv-track__dot {
+  inline-size: 16px;
+  block-size: 16px;
+  margin-block-start: 0.2rem;
+  border-radius: 50%;
+  background: var(--fg-subtle);
+}
+.drv-track[data-kind="ok"] .drv-track__dot {
+  background: var(--brand);
+  box-shadow: 0 0 0 0 color-mix(in oklab, var(--brand) 60%, transparent);
+  animation: drv-pulse 1.8s ease-out infinite;
+}
+@keyframes drv-pulse {
+  to {
+    box-shadow: 0 0 0 14px transparent;
+  }
+}
+.drv-card {
+  padding: 1rem 1.1rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+}
+.drv-card h2 {
+  margin: 0 0 0.6rem;
+  font-size: var(--step-1);
+}
+.drv-stops {
+  display: grid;
+  gap: 0.6rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.drv-stops li {
+  display: grid;
+  grid-template-columns: 3.5rem 1fr auto;
+  gap: 0.75rem;
+  align-items: center;
+}
+.drv-stops li > span:first-child {
+  font-weight: 800;
+  font-size: var(--step-1);
+}
+.drv-stops li > div {
+  display: grid;
+}
+.drv-stops li > div span,
+.drv-stops__pax {
+  font-size: var(--step--1);
+  color: var(--fg-muted);
+}
+.drv-actions .btn {
+  inline-size: 100%;
+  justify-content: center;
+  min-block-size: 64px;
+  font-size: var(--step-1);
+}
+.drv-end {
+  border: 2px solid var(--danger);
+  color: var(--danger);
+  background: #fff;
+}
+.drv-note {
+  margin: 0.6rem 0 0;
+  font-size: var(--step--1);
+  color: var(--fg-muted);
+}

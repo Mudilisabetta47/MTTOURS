@@ -478,3 +478,8 @@ table.data td.num {
   align-items: flex-start;
   gap: 1rem;
 }
+.adm-two {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 380px), 1fr));
+  gap: 1rem;
+}

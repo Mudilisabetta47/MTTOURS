@@ -28,7 +28,7 @@ test("trip admin: edit accommodation and see it on the public page", async ({ pa
 
   // capacity is saved through the same guarded service (below sold seats is covered by the DB tests)
   await page.getByRole("link", { name: "Termine & Preise" }).click();
-  await page.locator(".adm-dep").first().locator('input[name="capacity"]').fill("6");
+  await page.locator(".adm-dep").first().locator('input[name="capacity"]').fill("12");
   await page.locator(".adm-dep").first().getByRole("button", { name: "Ändern" }).click();
   await expect(page.locator(".alert--ok")).toHaveText("Plätze geändert.");
 

@@ -251,3 +251,110 @@
   inline-size: 150px;
   block-size: 150px;
 }
+
+/* ── live tracking ──────────────────────────────────────────────────── */
+.live {
+  display: grid;
+  gap: 0.9rem;
+  margin-block: 1rem;
+  padding: 1.1rem 1.2rem;
+  border-radius: var(--radius-lg);
+  border: 2px solid var(--brand-button);
+  background: color-mix(in oklab, var(--brand) 7%, #fff);
+}
+.live--idle,
+.live[data-state="stale"],
+.live[data-state="waiting"] {
+  border-color: var(--line-strong);
+  background: var(--bg-subtle);
+}
+.live--idle {
+  grid-template-columns: auto 1fr;
+  align-items: start;
+}
+.live--idle p {
+  margin: 0.2rem 0 0;
+  color: var(--fg-muted);
+  font-size: var(--step--1);
+}
+.live__head {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.8rem;
+  align-items: center;
+}
+.live__head > div {
+  display: grid;
+}
+.live__head strong {
+  font-size: var(--step-1);
+}
+.live__head span {
+  font-size: var(--step--1);
+  color: var(--fg-muted);
+}
+.live__dot {
+  inline-size: 14px;
+  block-size: 14px;
+  margin-block-start: 0.2rem;
+  border-radius: 50%;
+  background: var(--fg-subtle);
+}
+.live[data-state="live"] .live__dot {
+  background: var(--brand);
+  animation: live-pulse 1.8s ease-out infinite;
+}
+.live[data-state="stale"] .live__dot {
+  background: var(--warn);
+}
+@keyframes live-pulse {
+  from {
+    box-shadow: 0 0 0 0 color-mix(in oklab, var(--brand) 60%, transparent);
+  }
+  to {
+    box-shadow: 0 0 0 14px transparent;
+  }
+}
+.live__stop {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.85rem 1rem;
+  border-radius: var(--radius);
+  background: #fff;
+  border: 1px solid var(--line);
+}
+.live__stop > div {
+  display: grid;
+}
+.live__stop span {
+  font-size: var(--step--1);
+  color: var(--fg-muted);
+}
+.live__dist {
+  text-align: end;
+}
+.live__dist strong {
+  font-size: var(--step-2);
+}
+.live__label {
+  font-size: 0.7rem !important;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--fg-subtle) !important;
+}
+.live__map {
+  justify-self: start;
+}
+.live__fine {
+  margin: 0;
+  font-size: 0.76rem;
+  color: var(--fg-subtle);
+}
+@media (prefers-reduced-motion: reduce) {
+  .live__dot {
+    animation: none !important;
+  }
+}

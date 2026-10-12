@@ -6,6 +6,7 @@ import { ticketQrSvg } from "@/server/tickets/qr";
 import { COMPANY } from "@/content/company";
 import { formatEur } from "@/lib/money";
 import { retryPaymentAction } from "../actions";
+import { LiveTracker } from "@/components/live/live-tracker";
 import "@/styles/booking.css";
 
 export const dynamic = "force-dynamic";
@@ -14,6 +15,9 @@ export const metadata: Metadata = { title: "Ihre Buchung", robots: { index: fals
 const tz = "Europe/Berlin";
 const dateFmt = new Intl.DateTimeFormat("de-DE", { timeZone: tz, weekday: "long", day: "2-digit", month: "long", year: "numeric" });
 const timeFmt = new Intl.DateTimeFormat("de-DE", { timeZone: tz, hour: "2-digit", minute: "2-digit" });
+
+/** live tracking is offered from booking until a few days after departure */
+const notLongPast = (d: Date) => d.getTime() > Date.now() - 3 * 86_400_000;
 
 export default async function BookingStatusPage({ searchParams }: { searchParams: Promise<{ o?: string; t?: string; zahlung?: string }> }) {
   const { o = "", t = "", zahlung } = await searchParams;
@@ -50,6 +54,7 @@ export default async function BookingStatusPage({ searchParams }: { searchParams
               Buchungsnummer <strong className="tabular">{booking.number}</strong> · Zahlung über {formatEur(order.totalCents)} erhalten. Die Bestätigung
               geht an {order.email}.
             </p>
+                      {notLongPast(booking.departure.departAt) ? <LiveTracker orderId={order.id} token={t.slice(0, 200)} /> : null}
           </>
         ) : pending ? (
           zahlung === "abgebrochen" ? (

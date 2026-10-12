@@ -3,6 +3,7 @@ import { db } from "@/server/db/client";
 import { requirePermission } from "@/server/auth/session";
 import { formatDateTime } from "@/lib/time";
 import { logoutAction } from "@/app/anmelden/actions";
+import Link from "next/link";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Fahrer", robots: { index: false, follow: false } };
@@ -19,7 +20,7 @@ export default async function DriverHome() {
         where: { driverId: driver.id, status: { not: "CANCELLED" }, endsAt: { gte: new Date() } },
         orderBy: { startsAt: "asc" },
         take: 20,
-        include: { run: { select: { number: true, title: true, originText: true, destinationText: true } } },
+        include: { run: { select: { id: true, number: true, title: true, originText: true, destinationText: true, status: true } } },
       })
     : [];
 
@@ -44,7 +45,10 @@ export default async function DriverHome() {
         <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "grid", gap: "0.75rem" }}>
           {assignments.map((a) => (
             <li key={a.id} style={{ padding: "1rem", border: "1px solid var(--line)", borderRadius: "var(--radius)" }}>
-              <strong>{a.run.title}</strong>
+              <Link href={`/fahrer/fahrt/${a.run.id}` as never}>
+                <strong>{a.run.title}</strong>
+              </Link>
+              {a.run.status === "IN_PROGRESS" ? <span className="mono-label" style={{ color: "var(--brand-deep)" }}> · unterwegs</span> : null}
               <div style={{ color: "var(--fg-muted)", fontSize: "var(--step--1)" }}>
                 {a.run.number} · {formatDateTime(a.startsAt)} · {a.run.originText} → {a.run.destinationText}
                 {a.status === "TENTATIVE" ? " · vorläufig" : ""}

@@ -103,5 +103,5 @@ test("a manipulated tariff in the link falls back to a valid one", async ({ page
   await expect(page.locator("#bk-fare")).toHaveValue("SMART");
   const n = Number(await page.locator("#bk-count").inputValue());
   expect(n).toBeGreaterThanOrEqual(1);
-  expect(n).toBeLessThanOrEqual(6);
+  expect(n).toBeLessThanOrEqual(10);
 });

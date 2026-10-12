@@ -5,7 +5,8 @@ import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "../../src/generated/prisma/client.ts";
 import { hashPassword } from "../../src/server/auth/password.ts";
 import { assertTestDatabase } from "../db/safety.ts";
-import { seedE2eCatalog } from "./seed.ts";
+import { createHash } from "node:crypto";
+import { seedE2eCatalog, seedE2eLive } from "./seed.ts";
 
 /** Fresh e2e database with two accounts whose random passwords are handed to the specs via a git-ignored file. */
 export default async function globalSetup() {
@@ -28,10 +29,14 @@ export default async function globalSetup() {
     await db.user.create({
       data: { email: accounts.owner.email, displayName: "E2E Inhaber", passwordHash: await hashPassword(accounts.owner.password), roles: { create: [{ role: "OWNER" }] } },
     });
-    await db.user.create({
+    const driverUser = await db.user.create({
       data: { email: accounts.driver.email, displayName: "E2E Fahrer", passwordHash: await hashPassword(accounts.driver.password), roles: { create: [{ role: "DRIVER" }] } },
     });
     await seedE2eCatalog(db);
+    const liveToken = randomBytes(24).toString("base64url");
+    const live = await seedE2eLive(db, driverUser.id, createHash("sha256").update(liveToken).digest("hex"));
+    mkdirSync("test-results", { recursive: true });
+    writeFileSync("test-results/e2e-live.json", JSON.stringify({ ...live, token: liveToken }));
   } finally {
     await db.$disconnect();
   }

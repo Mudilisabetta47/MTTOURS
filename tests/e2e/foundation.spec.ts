@@ -105,7 +105,8 @@ test("owner creates a driver account and the action is audited", async ({ page }
 test("a driver lands in the driver area and cannot open the back office", async ({ page }) => {
   await login(page, "driver");
   await expect(page).toHaveURL(/\/fahrer$/);
-  await expect(page.getByText("Ihr Konto ist noch keinem Fahrerprofil zugeordnet")).toBeVisible();
+  // the e2e driver has a profile and one assigned run (live-tracking fixture)
+  await expect(page.getByRole("link", { name: "E2E Testreise Nizza" })).toBeVisible();
   const res = await page.goto("/admin");
   expect(res?.status()).toBe(403);
   await expect(page.getByRole("heading", { name: "Keine Berechtigung" })).toBeVisible();

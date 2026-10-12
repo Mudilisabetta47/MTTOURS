@@ -42,7 +42,7 @@ export const ADMIN_NAV: NavGroup[] = [
       { href: "/admin/fahrten", label: "Fahrten", permission: "run.read", implemented: false, phase: 5 },
       { href: "/admin/disposition", label: "Disposition", permission: "dispatch.assign", implemented: false, phase: 5 },
       { href: "/admin/fahrer", label: "Fahrer", permission: "driver.read", implemented: false, phase: 5 },
-      { href: "/ops", label: "Leitstelle", permission: "ops.view", implemented: false, phase: 6 },
+      { href: "/admin/leitstelle", label: "Leitstelle (Live)", permission: "ops.view", implemented: true, phase: 6 },
     ],
   },
   {

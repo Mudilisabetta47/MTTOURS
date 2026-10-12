@@ -11,9 +11,9 @@ export async function seedE2eCatalog(db: PrismaClient) {
     d.setUTCHours(h, 0, 0, 0);
     return d;
   };
-  const ham = await db.stop.create({ data: { name: "Testhalt Hamburg ZOB", city: "Hamburg" } });
-  const bre = await db.stop.create({ data: { name: "Testhalt Bremen ZOB", city: "Bremen" } });
-  const han = await db.stop.create({ data: { name: "Testhalt Hannover ZOB", city: "Hannover" } });
+  const ham = await db.stop.create({ data: { name: "Testhalt Hamburg ZOB", city: "Hamburg", latitude: 53.5523, longitude: 10.0115 } });
+  const bre = await db.stop.create({ data: { name: "Testhalt Bremen ZOB", city: "Bremen", latitude: 53.0838, longitude: 8.8136 } });
+  const han = await db.stop.create({ data: { name: "Testhalt Hannover ZOB", city: "Hannover", latitude: 52.3795, longitude: 9.7364 } });
 
   const guide = await db.destination.create({
     data: {
@@ -78,8 +78,8 @@ export async function seedE2eCatalog(db: PrismaClient) {
       departAt: day(30),
       returnAt: day(33, 18),
       status: "ON_SALE",
-      // two bookings of 2 (desktop + mobile project) still leave seats for the remaining checks
-      capacity: 6,
+      // bookings of both projects + the live fixture still leave seats for searches with 2 travellers
+      capacity: 12,
       fares: {
         create: [
           { code: "BASIC", name: "Basic", priceCents: 19900, sort: 1, conditions: { features: ["Handgepäck"] } },
@@ -120,4 +120,60 @@ export async function seedE2eCatalog(db: PrismaClient) {
   await db.trip.create({
     data: { ...base, slug: "e2e-ohne-termine", title: "E2E Reise ohne Termine", productType: "TRANSPORT_ONLY", destination: "Leerstadt", summary: "Testreise ohne Termine.", durationDays: 3, guideId: (await db.destination.findUniqueOrThrow({ where: { slug: "e2e-leer" } })).id },
   });
+}
+
+/**
+ * Live tracking fixtures (test database only): a coach, a driver profile for the e2e driver account,
+ * a confirmed run on the bookable test date and one paid booking with a known guest token.
+ */
+export async function seedE2eLive(db: PrismaClient, driverUserId: string, accessTokenHash: string) {
+  const dep = await db.tripDeparture.findUniqueOrThrow({ where: { code: "E2E-NIZZA-1" }, include: { fares: true, stops: { orderBy: { sequence: "asc" } } } });
+  const vehicle = await db.vehicle.create({ data: { internalNumber: "E2E-01", licensePlate: "H-E2E 1", manufacturer: "MAN", model: "Lion's Coach (Test)", seats: 50, vehicleClass: "REISEBUS", equipment: [] } });
+  const driver = await db.driver.create({ data: { userId: driverUserId, firstName: "E2E", lastName: "Fahrer" } });
+  const startsAt = new Date(dep.departAt.getTime() - 3600_000);
+  const endsAt = dep.returnAt ?? new Date(dep.departAt.getTime() + 4 * 86400_000);
+  const run = await db.run.create({
+    data: {
+      number: "F-E2E-00001",
+      kind: "SCHEDULED_DEPARTURE",
+      status: "CONFIRMED",
+      departureId: dep.id,
+      title: "E2E Testreise Nizza",
+      startsAt,
+      endsAt,
+      originText: "Testhalt Hamburg ZOB",
+      destinationText: "Nizza",
+      requiredSeats: 1,
+      vehicles: { create: { vehicleId: vehicle.id, startsAt, endsAt, status: "CONFIRMED" } },
+      drivers: { create: { driverId: driver.id, startsAt, endsAt, status: "CONFIRMED" } },
+    },
+  });
+  const fare = dep.fares[0]!;
+  const stop = dep.stops[1] ?? dep.stops[0]!;
+  const order = await db.order.create({
+    data: {
+      number: "MT-O-E2E-LIVE",
+      email: "live@example.org",
+      status: "PAID",
+      subtotalCents: fare.priceCents,
+      totalCents: fare.priceCents,
+      accessTokenHash,
+      consents: { terms: "test", privacy: "test" },
+      paidAt: new Date(),
+      bookings: {
+        create: {
+          number: "MT-E2E-LIVE",
+          departureId: dep.id,
+          fareId: fare.id,
+          productType: "PACKAGE_TOUR",
+          contactName: "Live Test",
+          contactEmail: "live@example.org",
+          status: "CONFIRMED",
+          passengers: { create: { firstName: "Live", lastName: "Test", boardingStopId: stop.id } },
+        },
+      },
+    },
+  });
+  await db.tripDeparture.update({ where: { id: dep.id }, data: { soldCount: { increment: 1 } } });
+  return { runId: run.id, orderId: order.id };
 }
