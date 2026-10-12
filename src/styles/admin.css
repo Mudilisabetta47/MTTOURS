@@ -284,3 +284,197 @@ table.data td.num {
   color: var(--brand-deep);
   font-weight: 600;
 }
+
+/* ── editor building blocks ─────────────────────────────────────────── */
+.adm-tabs {
+  display: flex;
+  gap: 0.25rem;
+  overflow-x: auto;
+  border-block-end: 1px solid var(--line);
+  scrollbar-width: none;
+}
+.adm-tabs a {
+  padding: 0.7rem 0.9rem;
+  border-block-end: 2px solid transparent;
+  margin-block-end: -1px;
+  color: var(--fg-muted);
+  font-weight: 600;
+  font-size: var(--step--1);
+  text-decoration: none;
+  white-space: nowrap;
+}
+.adm-tabs a:hover {
+  color: var(--fg);
+}
+.adm-tabs a[aria-current="page"] {
+  color: var(--fg);
+  border-color: var(--brand);
+}
+.adm-form {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr));
+  gap: 0.85rem 1rem;
+  align-items: end;
+  padding: 1rem;
+}
+.adm-form--row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.75rem;
+  border-block-end: 1px solid var(--line);
+}
+.adm-form--row .field {
+  flex: 1 1 160px;
+}
+.adm-wide {
+  grid-column: 1 / -1;
+}
+.adm-form textarea,
+.adm-dep textarea,
+.adm-fare textarea,
+.adm-day textarea {
+  inline-size: 100%;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  font: inherit;
+  font-size: var(--step--1);
+  resize: vertical;
+}
+.adm-dep input:not([type="checkbox"]),
+.adm-fare input,
+.adm-day input,
+.adm-inline input,
+.adm-media__item input:not([type="checkbox"]) {
+  inline-size: 100%;
+  min-block-size: 38px;
+  padding: 0.4rem 0.6rem;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  font: inherit;
+  font-size: var(--step--1);
+}
+.adm-list {
+  margin: 0.4rem 0 0;
+  padding-inline-start: 1.1rem;
+}
+.adm-deps {
+  display: grid;
+  gap: 0.85rem;
+  padding: 1rem;
+}
+.adm-dep {
+  display: grid;
+  gap: 0.6rem;
+  padding: 0.9rem 1rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--bg);
+}
+.adm-dep[data-past="true"] {
+  opacity: 0.6;
+}
+.adm-dep > header {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+.adm-dep__meta {
+  display: grid;
+  justify-items: end;
+  gap: 0.3rem;
+  font-size: var(--step--1);
+}
+.adm-dep p {
+  margin: 0;
+}
+.adm-dep__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+.adm-inline {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.adm-inline label {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: var(--step--1);
+}
+.adm-inline input {
+  inline-size: 5rem !important;
+}
+.adm-danger {
+  color: var(--danger) !important;
+  border-color: color-mix(in oklab, var(--danger) 40%, transparent) !important;
+}
+.adm-fares {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 230px), 1fr));
+  gap: 0.75rem;
+}
+.adm-fare,
+.adm-day {
+  display: grid;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0.75rem 0.85rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+.adm-fare legend,
+.adm-day legend {
+  padding-inline: 0.3rem;
+  font-weight: 700;
+  font-size: var(--step--1);
+}
+.adm-fare label {
+  display: grid;
+  gap: 0.25rem;
+  font-size: var(--step--1);
+  font-weight: 600;
+}
+.adm-fare label.choice {
+  display: flex;
+}
+.adm-media {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr));
+  gap: 1rem;
+  padding: 1rem;
+}
+.adm-media__item {
+  display: grid;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.adm-media__item img {
+  inline-size: 100%;
+  aspect-ratio: 16 / 10;
+  object-fit: cover;
+}
+.adm-media__body {
+  display: grid;
+  gap: 0.45rem;
+  padding: 0.75rem;
+  font-size: var(--step--1);
+}
+.adm-media__body label:not(.choice) {
+  display: grid;
+  gap: 0.25rem;
+  font-weight: 600;
+}
+.adm-head {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+}
