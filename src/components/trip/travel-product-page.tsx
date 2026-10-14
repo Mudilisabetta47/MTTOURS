@@ -8,6 +8,7 @@ import { TripGallery } from "./gallery";
 import { BookingCard, type BookingCardProps } from "./booking-card";
 import { PickDepartureButton, SectionNav } from "./trip-interactions";
 import { OpenBookingButton, ShareButton } from "./trip-actions";
+import { TripHighlights, TripMood } from "./trip-highlights";
 import type { Guide } from "@/server/catalog/destinations";
 import { DestinationSection } from "@/components/destination/destination-section";
 import { CatIcon } from "@/components/destination/explorer";
@@ -441,6 +442,10 @@ export function TravelProductPage({ t, path, breadcrumb, guide }: { t: TripDetai
         </ul>
       </div>
 
+      <div className="shell">
+        <TripHighlights t={t} guide={guide} />
+      </div>
+
       <div className="shell tp-layout">
         <div className="tp-main">
           <SectionNav items={nav} />
@@ -719,6 +724,10 @@ export function TravelProductPage({ t, path, breadcrumb, guide }: { t: TripDetai
               </div>
             </section>
           ) : null}
+
+          <TripMood t={t}>
+            <OpenBookingButton label={bookable ? "Jetzt Platz sichern" : "Termin vormerken"} className="btn btn--lg tmood__cta" />
+          </TripMood>
 
           {guide ? <DestinationSection guide={guide} /> : null}
 

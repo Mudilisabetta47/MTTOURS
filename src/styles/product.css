@@ -1948,3 +1948,189 @@
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+/* ── colourful "at a glance" band ───────────────────────────────────── */
+.thl {
+  position: relative;
+  margin-block-start: 1.25rem;
+  padding: clamp(1.4rem, 1rem + 1.5vw, 2.25rem) clamp(1.2rem, 1rem + 1.5vw, 2.5rem) 1.25rem;
+  border-radius: 28px;
+  background:
+    radial-gradient(40% 80% at 0% 0%, color-mix(in oklab, var(--livery) 30%, transparent), transparent 70%),
+    radial-gradient(40% 90% at 100% 100%, color-mix(in oklab, var(--brand) 22%, transparent), transparent 70%),
+    #f3f8ea;
+  border: 1px solid color-mix(in oklab, var(--livery) 35%, var(--line));
+  overflow: hidden;
+}
+.thl__grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: clamp(1rem, 0.5rem + 2vw, 2.25rem);
+}
+.thl__col {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.85rem;
+  align-items: start;
+}
+.thl__sticker {
+  flex: none;
+  transform: rotate(-6deg);
+  filter: drop-shadow(0 6px 10px rgb(5 60 30 / 0.18));
+  transition: transform 500ms var(--ease-out-expo);
+}
+.thl__col:nth-child(even) .thl__sticker {
+  transform: rotate(5deg);
+}
+.thl__col:hover .thl__sticker {
+  transform: rotate(0deg) scale(1.12);
+  animation: thl-wiggle 600ms var(--ease-swift);
+}
+@keyframes thl-wiggle {
+  30% {
+    transform: rotate(-10deg) scale(1.12);
+  }
+  60% {
+    transform: rotate(8deg) scale(1.12);
+  }
+}
+.thl h3 {
+  margin: 0.45rem 0 0.55rem;
+  font-size: var(--step-1);
+  font-weight: 750;
+  letter-spacing: -0.01em;
+}
+.thl ul {
+  display: grid;
+  gap: 0.45rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.thl li {
+  position: relative;
+  padding-inline-start: 1.05rem;
+  font-size: var(--step--1);
+  line-height: 1.45;
+  color: var(--fg);
+}
+.thl li::before {
+  content: "";
+  position: absolute;
+  inset: 0.5em auto auto 0;
+  inline-size: 7px;
+  block-size: 7px;
+  border-radius: 50%;
+  background: var(--brand-button);
+}
+.thl__empty {
+  margin: 0;
+  font-size: var(--step--1);
+  color: var(--fg-muted);
+}
+.thl__voice {
+  margin: 1.4rem 0 0;
+  padding-block-start: 1rem;
+  border-block-start: 1px dashed color-mix(in oklab, var(--brand-deep) 30%, transparent);
+  font-size: var(--step--1);
+  color: var(--fg-muted);
+}
+.thl__voice a {
+  color: var(--brand-deep);
+  font-weight: 700;
+}
+
+/* ── emotional photo moment ─────────────────────────────────────────── */
+.tmood {
+  position: relative;
+  display: grid;
+  align-items: end;
+  min-block-size: clamp(300px, 18rem + 8vw, 440px);
+  margin-block: clamp(2rem, 1.4rem + 2vw, 3rem);
+  border-radius: 28px;
+  overflow: hidden;
+  background: linear-gradient(135deg, var(--brand-button), #04592c);
+  isolation: isolate;
+}
+.tmood__img {
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  inline-size: 100%;
+  block-size: 100%;
+  object-fit: cover;
+  transform: scale(1.04);
+  transition: transform 1400ms var(--ease-out-expo);
+}
+.tmood:hover .tmood__img {
+  transform: scale(1.09);
+}
+.tmood__shade {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(180deg, rgb(3 10 8 / 0.05) 20%, rgb(3 10 8 / 0.72) 100%), linear-gradient(90deg, rgb(4 89 44 / 0.55), transparent 65%);
+}
+.tmood__text {
+  display: grid;
+  gap: 0.6rem;
+  justify-items: start;
+  padding: clamp(1.4rem, 1rem + 2vw, 2.5rem);
+  color: #fff;
+}
+.tmood__line {
+  margin: 0;
+  font-family: var(--font-condensed);
+  font-size: clamp(2.4rem, 1.6rem + 3.6vw, 4.6rem);
+  line-height: 0.95;
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+}
+.tmood__line span {
+  color: var(--brand);
+}
+.tmood__sub {
+  margin: 0;
+  max-inline-size: 40ch;
+  font-size: var(--step-1);
+  color: rgb(255 255 255 / 0.9);
+}
+.tmood__cta {
+  margin-block-start: 0.4rem;
+  background: #fff;
+  color: var(--brand-deep);
+  border-color: #fff;
+}
+.tmood__cta:hover {
+  background: var(--bone);
+}
+.tmood__tag {
+  position: absolute;
+  inset: 0.85rem 0.85rem auto auto;
+  padding: 0.15rem 0.5rem;
+  border-radius: var(--radius-pill);
+  background: #fff4d6;
+  color: #7a5200;
+  font-size: 0.66rem;
+  font-weight: 700;
+}
+
+@media (max-width: 1100px) {
+  .thl__grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 600px) {
+  .thl__grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .thl__sticker {
+    inline-size: 46px;
+    block-size: 46px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .thl__col:hover .thl__sticker {
+    animation: none;
+  }
+}
