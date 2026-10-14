@@ -111,3 +111,22 @@ test("legal notice is reachable and every internal homepage link resolves", asyn
   await page.goto("/impressum");
   await expect(page.getByText("HRB 222247")).toBeVisible();
 });
+
+test("hero text never slides under the fixed header, even on short screens", async ({ browser, baseURL }) => {
+  for (const viewport of [
+    { width: 1000, height: 512 },
+    { width: 1280, height: 650 },
+    { width: 1440, height: 900 },
+    { width: 1840, height: 1000 },
+  ]) {
+    const page = await browser.newPage({ viewport, baseURL });
+    await page.goto("/");
+    await page.waitForTimeout(400);
+    const r = await page.evaluate(() => ({
+      header: document.querySelector(".hdr")!.getBoundingClientRect().bottom,
+      kicker: document.querySelector(".hero__kicker")!.getBoundingClientRect().top,
+    }));
+    expect(r.kicker, `${viewport.width}x${viewport.height}`).toBeGreaterThan(r.header + 8);
+    await page.close();
+  }
+});

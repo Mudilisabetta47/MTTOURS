@@ -59,12 +59,15 @@ function Hills({ seed, color, base, amp }: { seed: string; color: string; base: 
   return <path d={d} fill={color} />;
 }
 
+const r2 = (n: number) => Math.round(n * 100) / 100;
+
 function Palm({ x, y, s = 1 }: { x: number; y: number; s?: number }) {
   return (
     <g transform={`translate(${x} ${y}) scale(${s})`} fill="none" stroke="#10241a" strokeLinecap="round">
       <path d="M0 0 C 4 -30, -2 -60, 6 -92" strokeWidth="4" />
       {[-70, -35, 0, 35, 70, 110, -110].map((a) => (
-        <path key={a} d={`M6 -92 q ${Math.cos(((a - 90) * Math.PI) / 180) * 26} ${Math.sin(((a - 90) * Math.PI) / 180) * 18 - 4} ${Math.cos(((a - 90) * Math.PI) / 180) * 40} ${Math.sin(((a - 90) * Math.PI) / 180) * 18 + 12}`} strokeWidth="3.5" />
+        // rounded: server and browser must produce identical strings (no hydration mismatch)
+        <path key={a} d={`M6 -92 q ${r2(Math.cos(((a - 90) * Math.PI) / 180) * 26)} ${r2(Math.sin(((a - 90) * Math.PI) / 180) * 18 - 4)} ${r2(Math.cos(((a - 90) * Math.PI) / 180) * 40)} ${r2(Math.sin(((a - 90) * Math.PI) / 180) * 18 + 12)}`} strokeWidth="3.5" />
       ))}
     </g>
   );

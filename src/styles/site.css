@@ -2207,9 +2207,18 @@
   }
 }
 /* slider hero: shorter, so the search card is visible in the first screen */
+/* grows with its content on short or narrow screens instead of pushing the headline under the menu */
 .hero:has(.hslider) {
-  block-size: min(86svh, 880px);
-  min-block-size: 600px;
+  block-size: auto;
+  min-block-size: max(600px, min(86svh, 880px));
+}
+.hero:has(.hslider) .hero__content {
+  min-block-size: inherit;
+  padding-block-start: calc(72px + clamp(1.5rem, 1rem + 2vw, 3rem));
+}
+.hero:has(.hslider) h1 {
+  /* scales with width and height, so it never fills a short laptop screen */
+  font-size: min(clamp(3rem, 1rem + 7vw, 9rem), 15svh);
 }
 .hero .hslider img {
   filter: saturate(1.04) contrast(1.04) brightness(0.96);
